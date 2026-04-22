@@ -1,5 +1,6 @@
 import { runJsonAgent } from "../openai";
 import type { ImageCandidate, Source, SourceBoundFact } from "../types";
+import { discoverSourceImages } from "../source-images";
 import { editorialSystem } from "./prompts";
 import { fallbackSources } from "./fallbacks";
 
@@ -9,74 +10,6 @@ export type ResearchOutput = {
   sources: Source[];
   imageCandidates: ImageCandidate[];
   visualDirections: string[];
-};
-
-const extractMetaImage = (html: string) => {
-  const patterns = [
-    /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
-    /<meta[^>]+property=["']og:image:url["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:url["'][^>]*>/i,
-    /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
-    /<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image:src["'][^>]*>/i,
-    /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["'][^>]*>/i,
-    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']image_src["'][^>]*>/i
-  ];
-
-  for (const pattern of patterns) {
-    const match = html.match(pattern);
-    if (match?.[1]) return match[1].replaceAll("&amp;", "&");
-  }
-
-  return null;
-};
-
-const toAbsoluteImageUrl = (imageUrl: string, sourceUrl: string) => {
-  try {
-    const absoluteUrl = new URL(imageUrl, sourceUrl);
-    if (!["http:", "https:"].includes(absoluteUrl.protocol)) return null;
-    if (absoluteUrl.pathname.endsWith(".svg")) return null;
-    return absoluteUrl.toString();
-  } catch {
-    return null;
-  }
-};
-
-const discoverSourceImages = async (sources: Source[]) => {
-  const results = await Promise.allSettled(
-    sources.slice(0, 5).map(async source => {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      try {
-        const response = await fetch(source.url, {
-          headers: {
-            Accept: "text/html,application/xhtml+xml",
-            "User-Agent":
-              "Mozilla/5.0 (compatible; NewsLiveLandings/1.0; +https://diegodella.ar/landings)"
-          },
-          signal: controller.signal
-        });
-        if (!response.ok) return null;
-        const html = await response.text();
-        const rawImageUrl = extractMetaImage(html);
-        const imageUrl = rawImageUrl ? toAbsoluteImageUrl(rawImageUrl, source.url) : null;
-        if (!imageUrl) return null;
-        return {
-          url: imageUrl,
-          title: source.title,
-          credit: source.outlet,
-          alt: `Image associated with ${source.title}`,
-          sourceUrl: source.url
-        } satisfies ImageCandidate;
-      } finally {
-        clearTimeout(timeout);
-      }
-    })
-  );
-
-  return results.flatMap(result => (result.status === "fulfilled" && result.value ? [result.value] : []));
 };
 
 const normalizeResearch = async (output: ResearchOutput): Promise<ResearchOutput> => {

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { LandingRenderer } from "@/components/landing/LandingRenderer";
 import { getLandingBySlug } from "@/lib/db";
+import { withDiscoveredSourceImages } from "@/lib/source-images";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -27,5 +28,6 @@ export default async function LandingPage({ params }: Props) {
   const { slug } = await params;
   const landing = getLandingBySlug(slug);
   if (!landing || landing.status !== "live") notFound();
-  return <LandingRenderer content={landing.content} />;
+  const content = await withDiscoveredSourceImages(landing.content);
+  return <LandingRenderer content={content} />;
 }
