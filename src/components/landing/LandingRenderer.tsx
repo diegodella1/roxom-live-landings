@@ -93,7 +93,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
       <section className={styles.articleSection} aria-label="Main article">
         <div className={styles.container}>
           <div className={styles.sectionLabel}>
-            <span>Briefing</span>
+            <span>The Story</span>
             <i aria-hidden="true" />
           </div>
           <article className={styles.articleBody}>
@@ -112,7 +112,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                 >
                   <h2>{section.title}</h2>
                   <p>{section.body}</p>
-                  <div className={styles.sourceTags}>
+                  <div className={styles.sourceTags} aria-label="Sources for this section">
                     {section.sourceUrls.map((sourceUrl, sourceIndex) => (
                       <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
                         {sourceLabel(content, sourceUrl)} {sourceIndex + 1}

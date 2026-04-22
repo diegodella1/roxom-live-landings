@@ -49,7 +49,8 @@ export const runResearch = async (topic: string) =>
 Research this live news landing topic: "${topic}".
 Use current web sources. Prefer AP, Reuters, Google News results, Bloomberg, BBC, NYT, FT, WSJ, CNBC, CoinDesk, and any other source deemed relevant by legacy and new media standards.
 Every fact must be source-bound. Do not include a claim unless it has a sourceUrl from the returned sources list.
-Find more than a headline: gather chronology, actors, numbers, official statements, market/geopolitical context, and what to watch next.
+Find more than a headline: gather chronology, actors, numbers, official statements, market/geopolitical context, human stakes, power dynamics, social/market reactions, visual scene details, and what to watch next.
+Collect enough detail to support a long-form magazine/news article, not a short dossier.
 Image collection is mandatory when available. Collect photographic image candidates only when the image URL is directly associated with a returned source, such as a source article OpenGraph image, press image, company/government media image, or media kit image. Prefer large landscape images. Do not use icons, logos, avatars, trackers, base64 data URLs, SVGs, or unrelated stock images.
 Return JSON:
 {
@@ -59,7 +60,7 @@ Return JSON:
   "imageCandidates": [{"url": string, "title": string, "credit": string, "alt": string, "sourceUrl": string}],
   "visualDirections": string[]
 }
-Minimum four credible sources when available. Minimum eight source-bound facts when available. No unsupported claims.
+Minimum six credible sources when available. Minimum sixteen source-bound facts when available. No unsupported claims.
 `,
     fallback: () => {
       const sources = fallbackSources(topic);

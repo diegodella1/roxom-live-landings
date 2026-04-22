@@ -22,10 +22,12 @@ Every factual sentence must be supported by the source-bound facts in Research.
 Every section must include sourceUrls from the source list.
 Every quote and data point must include sourceUrl from the source list.
 Do not invent quotes. If exact quotation text is not present in the research, return an empty quotes array.
-Write like a premium financial-news feature: specific, sharp, contextual, and worth reading from top to bottom.
-Create 7-10 sections when the research supports it. Each section body should be 110-190 words and contain only sourced information.
-Make the article experiential: include the setup, what changed, why it matters, key people/institutions, timeline, strongest numbers, market/social reactions, risks/uncertainties, and what to watch next when supported by facts.
-Use section titles that can become article subheads, not generic labels.
+Write like a premium magazine/news feature in the spirit of Vice: immersive, scene-setting, sharp, human, and narrative-driven, while staying factual and sourced.
+This must read as a real article, not a tiny dossier, not bullet-note intelligence, and not a product brief.
+Create 9-14 sections when the research supports it. Each section body should be 150-260 words and contain only sourced information.
+Make the article experiential: open with tension, explain the stakes, introduce the people/institutions, reconstruct the timeline, show the money/power/risk dynamics, include market/social/political reactions, and end with what could happen next when supported by facts.
+Use section titles that feel like magazine subheads, not generic labels such as "Context", "Data", or "Watch Next".
+Avoid dry transitions. Each section should move the story forward and connect to the next one.
 Include at least 3 dataPoints when the research contains numbers, dates, counts, prices, named actors, or status markers.
 Use visualHint "chart" for sections with time, price, count, volume, comparison, route, or risk data. Use "map" for geography. Use "image" for actor/place/object sections.
 Return JSON:

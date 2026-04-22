@@ -70,10 +70,10 @@ Use this exact JSON shape:
   "updateHistory": []
 }
 Stitch design requirements:
-- Layout must follow the dark editorial reference system: full-bleed image hero, long article body, timeline, quote cards, data/stat section, reactions/source cards, gallery, and footer sources.
-- Do not produce a card-grid landing. The main experience is a readable article with strong inline visuals and evidence modules.
+- Layout must follow the dark magazine/news reference system: full-bleed image hero, long article body, inline imagery, timeline when useful, pull quotes, data/stat section when useful, reactions/source cards, gallery, and footer sources.
+- Do not produce a card-grid landing or compact dossier. The main experience is a readable long-form article with strong narrative pacing and inline visuals.
 - Use vivid green #1ae784 as the main accent and red only for live/breaking/critical states.
-- It must feel like top editorial quality: strong cover image, concise headline, article subheads, visible sources, useful data/context, and a bottom source summary.
+- It must feel like a Vice-style news feature: immersive, image-led, edgy but credible, human and specific, with sources visible but not dominating the reading experience.
 - Choose the layout from the topic:
   - person-profile: one dominant person, founder, executive, politician, athlete, artist, or suspect. Use face/portrait imagery as the main experience.
   - event-brief: event, conflict, hearing, lawsuit, launch, accident, speech, policy decision, or breaking incident. Use scene/context imagery and timeline structure.

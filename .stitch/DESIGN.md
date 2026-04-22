@@ -2,9 +2,9 @@
 
 ## 1. Visual Theme & Atmosphere
 
-The landing must feel like a premium dark financial-news feature: full-screen image lead, dense evidence modules, clean article pacing, and high-contrast data. It should resemble a serious crypto/geopolitical newsroom microsite rather than a generic SaaS landing page or TV slide.
+The landing must feel like a premium dark magazine/news feature: full-screen image lead, narrative article pacing, strong inline photography, and high-contrast evidence modules. It should resemble a Vice-style long-form news story rather than a generic SaaS landing page, compact dossier, or TV slide.
 
-The experience is article-first. The reader should move through a hero, briefing, timeline, quotes, data/impact, reactions, gallery, and source footer.
+The experience is article-first. The reader should move through a hero, a substantial story, timeline when useful, quotes, data/impact when useful, reactions, gallery, and source footer.
 
 ## 2. Color Palette & Roles
 
@@ -32,7 +32,7 @@ No purple, no blue gradients, no beige palette, no neon TV glow. Green is sharp 
 
 1. **Sticky Masthead:** 80px, centered neutral text mark, no brand dependency.
 2. **Hero:** 92vh full-bleed image with dark vertical and horizontal gradients, live badge, topic tags, date, headline, subheadline, image credit.
-3. **Article:** Centered 900px column, long-form sections with real subheads, source tags, and occasional inline images.
+3. **Article:** Centered 900px column, long-form narrative sections with real magazine subheads, source tags, and frequent inline images.
 4. **Timeline:** Dark green/black band with vertical timeline and source footnotes.
 5. **Quotes:** Two-column cards on desktop, one-column on mobile.
 6. **Data & Impact:** Green-tinted band, stat cards, and at least one chart-like visual when source data exists.
@@ -53,7 +53,8 @@ Use restrained fade-up and optional scanline effect. No carousel, no auto-scroll
 
 ## 7. Content Quality Rules
 
-- 7-10 substantial sections when source material supports it.
+- 9-14 substantial sections when source material supports it.
+- Each section should feel like article prose, not a note card.
 - Every factual section carries source URLs.
 - Use exact quotes only when supported; otherwise use reactions/source cards.
 - Sources appear inline and at the bottom.
