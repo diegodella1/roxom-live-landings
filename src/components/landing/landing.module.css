@@ -2,22 +2,22 @@
   position: relative;
   min-height: 100vh;
   overflow-x: hidden;
-  padding: clamp(16px, 3vw, 40px);
+  padding: clamp(14px, 2.4vw, 34px);
   color: #f4f4f5;
   background:
-    linear-gradient(180deg, rgba(24, 24, 27, 0.96), rgba(24, 24, 27, 0.9)),
-    #18181b;
+    radial-gradient(circle at 20% 0%, rgba(214, 255, 95, 0.1), transparent 24rem),
+    linear-gradient(180deg, rgba(12, 13, 15, 0.98), rgba(24, 24, 27, 0.96)),
+    #0c0d0f;
 }
 
-.parallaxGrid {
+.editorialTexture {
   position: fixed;
   inset: 0;
   z-index: 0;
-  opacity: 0.18;
+  opacity: 0.16;
   background:
-    linear-gradient(90deg, rgba(244, 244, 245, 0.06) 1px, transparent 1px),
-    linear-gradient(0deg, rgba(244, 244, 245, 0.04) 1px, transparent 1px);
-  background-size: 72px 72px;
+    linear-gradient(90deg, rgba(244, 244, 245, 0.06) 1px, transparent 1px) 0 0 / 88px 88px,
+    linear-gradient(0deg, rgba(244, 244, 245, 0.04) 1px, transparent 1px) 0 0 / 88px 88px;
   pointer-events: none;
 }
 
@@ -32,34 +32,38 @@
 
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.25fr) minmax(300px, 0.75fr);
-  gap: clamp(24px, 4vw, 56px);
-  align-items: end;
-  min-height: min(720px, calc(100dvh - 64px));
+  grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.54fr);
+  grid-template-areas:
+    "copy data"
+    "media data";
+  gap: clamp(18px, 2.8vw, 38px);
+  align-items: stretch;
+  min-height: min(760px, calc(100dvh - 56px));
   max-width: 1380px;
   margin: 0 auto;
-  padding: clamp(28px, 5vw, 72px);
+  padding: clamp(18px, 2.4vw, 30px);
   overflow: hidden;
-  background:
-    linear-gradient(90deg, rgba(24, 24, 27, 0.86), rgba(24, 24, 27, 0.44) 58%, rgba(24, 24, 27, 0.72)),
-    linear-gradient(135deg, rgba(39, 39, 42, 0.98), rgba(24, 24, 27, 0.98));
-  background-position: center;
-  background-size: cover;
+  background: rgba(244, 244, 245, 0.035);
   border: 1px solid rgba(244, 244, 245, 0.14);
-  border-radius: 28px;
-  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.32);
+  border-radius: 10px;
+  box-shadow: 0 32px 90px rgba(0, 0, 0, 0.34);
 }
 
 .heroCopy {
+  grid-area: copy;
+  align-self: end;
   max-width: 980px;
+  padding: clamp(18px, 3vw, 42px);
+  border-left: 4px solid #d6ff5f;
+  background: linear-gradient(90deg, rgba(12, 13, 15, 0.82), rgba(12, 13, 15, 0.2));
 }
 
 .heroCopy h1 {
   max-width: 980px;
   margin: 18px 0;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(42px, 6vw, 88px);
-  line-height: 0.96;
+  font-size: clamp(44px, 6.8vw, 106px);
+  line-height: 0.92;
   letter-spacing: 0;
   text-transform: none;
 }
@@ -67,8 +71,51 @@
 .heroCopy p {
   max-width: 720px;
   color: rgba(244, 244, 245, 0.78);
-  font-size: clamp(17px, 1.5vw, 22px);
-  line-height: 1.5;
+  font-size: clamp(18px, 1.7vw, 24px);
+  line-height: 1.42;
+}
+
+.heroMedia {
+  grid-area: media;
+  position: relative;
+  min-height: 240px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #202024;
+}
+
+.heroMedia::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  background:
+    linear-gradient(180deg, transparent 58%, rgba(12, 13, 15, 0.72)),
+    linear-gradient(90deg, rgba(12, 13, 15, 0.12), transparent 42%);
+  pointer-events: none;
+}
+
+.heroMedia img,
+.photoVisual img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.heroMedia figcaption,
+.photoVisual figcaption {
+  position: absolute;
+  left: 12px;
+  bottom: 10px;
+  z-index: 1;
+  max-width: calc(100% - 24px);
+  color: rgba(244, 244, 245, 0.74);
+  font-family: var(--font-display), sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .kicker,
@@ -127,9 +174,10 @@
 }
 
 .signalPanel {
+  grid-area: data;
   align-self: end;
-  padding: clamp(18px, 2vw, 28px);
-  border-radius: 24px;
+  padding: clamp(18px, 2vw, 30px);
+  border-radius: 8px;
 }
 
 .panelLabel {
@@ -158,20 +206,19 @@
 
 .ticker {
   max-width: 1380px;
-  margin: 18px auto 36px;
-  overflow: hidden;
-  color: #18181b;
-  background: #d6ff5f;
-  border-radius: 999px;
-  font-family: var(--font-display), sans-serif;
-  font-weight: 700;
-  white-space: nowrap;
+  margin: 16px auto 28px;
+  color: rgba(244, 244, 245, 0.86);
+  background: transparent;
+  border-top: 1px solid rgba(214, 255, 95, 0.42);
+  border-bottom: 1px solid rgba(244, 244, 245, 0.12);
+  font-size: clamp(16px, 1.4vw, 20px);
+  line-height: 1.5;
 }
 
 .ticker span {
-  display: inline-block;
-  padding: 14px 28px;
-  animation: marquee 28s linear infinite;
+  display: block;
+  max-width: 980px;
+  padding: 16px 0;
 }
 
 .storyBlock,
@@ -199,25 +246,10 @@
   font: inherit;
 }
 
-.sectionsViewport,
-.singleSection {
-  overflow: hidden;
-  border-radius: 28px;
-}
-
 .sections {
-  display: flex;
-  gap: 18px;
-}
-
-.carousel {
-  width: max-content;
-  animation: storyPan 26s ease-in-out infinite alternate;
-}
-
-.fadeStack {
   display: grid;
-  animation: fadeLift 0.65s ease-out both;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px;
 }
 
 .card {
@@ -225,9 +257,19 @@
   grid-template-columns: minmax(0, 1fr) minmax(180px, 260px);
   gap: clamp(18px, 2.5vw, 34px);
   align-items: stretch;
-  flex: 0 0 min(820px, calc(100vw - 64px));
+  grid-column: span 6;
   padding: clamp(22px, 3vw, 34px);
-  border-radius: 28px;
+  border-radius: 8px;
+}
+
+.card:first-child,
+.card:nth-child(4n) {
+  grid-column: span 7;
+}
+
+.card:nth-child(2),
+.card:nth-child(5n) {
+  grid-column: span 5;
 }
 
 .eyebrow {
@@ -282,10 +324,20 @@
   overflow: hidden;
   color: #d6ff5f;
   border: 1px solid rgba(244, 244, 245, 0.12);
-  border-radius: 22px;
+  border-radius: 8px;
   background:
     linear-gradient(135deg, rgba(244, 244, 245, 0.07), transparent 46%),
     #202024;
+}
+
+.photoVisual {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-height: 170px;
+  margin: 0;
+  overflow: hidden;
+  border-radius: 6px;
 }
 
 .chartVisual {
@@ -352,7 +404,7 @@
 }
 
 .imageVisual {
-  border-radius: 18px;
+  border-radius: 6px;
   background:
     linear-gradient(135deg, rgba(244, 244, 245, 0.1), transparent 45%),
     radial-gradient(circle at 72% 30%, rgba(214, 255, 95, 0.24), transparent 26%),
@@ -384,7 +436,7 @@
 .sources,
 .updates {
   padding: clamp(22px, 3vw, 34px);
-  border-radius: 28px;
+  border-radius: 8px;
 }
 
 .quote p {
@@ -448,37 +500,6 @@
   }
 }
 
-@keyframes marquee {
-  0% {
-    transform: translateX(100%);
-  }
-  100% {
-    transform: translateX(-100%);
-  }
-}
-
-@keyframes storyPan {
-  0%,
-  18% {
-    transform: translateX(0);
-  }
-  82%,
-  100% {
-    transform: translateX(calc(-100% + min(820px, calc(100vw - 64px))));
-  }
-}
-
-@keyframes fadeLift {
-  from {
-    opacity: 0;
-    transform: translateY(16px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
 @media (max-width: 800px) {
   .shell {
     padding: 16px;
@@ -491,23 +512,32 @@
   }
 
   .hero {
+    grid-template-areas:
+      "copy"
+      "media"
+      "data";
     min-height: min(680px, calc(100dvh - 32px));
-    padding: 28px;
-  }
-
-  .card {
-    flex-basis: calc(100vw - 32px);
+    padding: 14px;
   }
 
   .visualTile {
     min-height: 132px;
   }
+
+  .sections {
+    grid-template-columns: 1fr;
+  }
+
+  .card,
+  .card:first-child,
+  .card:nth-child(2),
+  .card:nth-child(4n),
+  .card:nth-child(5n) {
+    grid-column: auto;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .carousel,
-  .fadeStack,
-  .ticker span,
   .liveDot {
     animation: none;
   }

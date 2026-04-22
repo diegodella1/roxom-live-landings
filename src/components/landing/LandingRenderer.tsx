@@ -1,10 +1,20 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "framer-motion";
-import type { LandingContent } from "@/lib/types";
+/* eslint-disable @next/next/no-img-element -- News images come from arbitrary source domains discovered at runtime. */
+import { motion } from "framer-motion";
+import type { LandingContent, VisualAsset } from "@/lib/types";
 import styles from "./landing.module.css";
 
-function VisualTile({ type, index }: { type: string; index: number }) {
+function VisualTile({ type, index, visual }: { type: string; index: number; visual?: VisualAsset }) {
+  if (visual?.type === "image" && visual.url) {
+    return (
+      <figure className={styles.photoVisual}>
+        <img src={visual.url} alt={visual.alt} loading={index === 0 ? "eager" : "lazy"} />
+        <figcaption>{visual.credit}</figcaption>
+      </figure>
+    );
+  }
+
   if (type === "chart" || type === "data") {
     const bars = [42, 68, 54, 82, 63].map(value => Math.max(18, Math.min(92, value + index * 3)));
     return (
@@ -40,29 +50,24 @@ function VisualTile({ type, index }: { type: string; index: number }) {
 }
 
 export function LandingRenderer({ content }: { content: LandingContent }) {
-  const { scrollYProgress } = useScroll();
-  const heroShift = useTransform(scrollYProgress, [0, 1], [0, -70]);
-  const gridShift = useTransform(scrollYProgress, [0, 1], [0, 90]);
-  const heroImage = content.visuals.find(visual => visual.type === "image" && visual.url)?.url;
-  const hasSlides = content.sections.length > 1;
+  const imageVisuals = content.visuals.filter((visual): visual is VisualAsset & { url: string } => (
+    visual.type === "image" && Boolean(visual.url)
+  ));
+  const heroImage = imageVisuals[0];
 
   return (
     <main className={styles.shell}>
-      <motion.div className={styles.parallaxGrid} style={{ y: gridShift }} aria-hidden="true" />
+      <div className={styles.editorialTexture} aria-hidden="true" />
 
-      <section
-        className={styles.hero}
-        style={
-          heroImage
-            ? {
-                backgroundImage: `linear-gradient(90deg, rgba(13,14,14,.9), rgba(13,14,14,.38) 58%, rgba(13,14,14,.72)), url("${heroImage}")`
-              }
-            : undefined
-        }
-      >
+      <section className={styles.hero}>
+        {heroImage && (
+          <figure className={styles.heroMedia}>
+            <img src={heroImage.url} alt={heroImage.alt} fetchPriority="high" />
+            <figcaption>{heroImage.credit}</figcaption>
+          </figure>
+        )}
         <motion.div
           className={styles.heroCopy}
-          style={{ y: heroShift }}
           initial={{ opacity: 0, y: 28 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
@@ -78,20 +83,21 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
             <span>Updated {new Date(content.lastUpdatedUtc).toLocaleString()}</span>
           </div>
         </motion.div>
-        <motion.div
+        <motion.aside
           className={styles.signalPanel}
-          initial={{ opacity: 0, scale: 0.96 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.7, delay: 0.15 }}
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.12 }}
+          aria-label="Key sourced data"
         >
-          <div className={styles.panelLabel}>Signal Stack</div>
-          {content.dataPoints.slice(0, 3).map(point => (
+          <div className={styles.panelLabel}>What Matters</div>
+          {content.dataPoints.slice(0, 4).map(point => (
             <div className={styles.dataRow} key={point.label}>
               <strong>{point.value}</strong>
               <span>{point.label}</span>
             </div>
           ))}
-        </motion.div>
+        </motion.aside>
       </section>
 
       <div className={styles.ticker}>
@@ -100,40 +106,41 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
 
       <section className={styles.storyBlock} aria-label="Story frames">
         <div className={styles.storyHeader}>
-          <span>Story Frames</span>
-          {hasSlides && <small>Auto-scrolling</small>}
+          <span>Story</span>
+          <small>{content.sections.length} sourced frames</small>
         </div>
-        <div className={hasSlides ? styles.sectionsViewport : styles.singleSection}>
-          <div className={hasSlides ? `${styles.sections} ${styles.carousel}` : `${styles.sections} ${styles.fadeStack}`}>
-            {content.sections.map((section, index) => (
-              <motion.article
-                className={styles.card}
-                key={section.id}
-                initial={{ opacity: 0, y: 28 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, margin: "-80px" }}
-                transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.18) }}
-              >
-                <div>
-                  <span className={styles.eyebrow}>{section.eyebrow}</span>
-                  <h2>{section.title}</h2>
-                  <p>{section.body}</p>
-                  {section.sourceUrls?.length > 0 && (
-                    <div className={styles.sectionSources}>
-                      {section.sourceUrls.map((sourceUrl, sourceIndex) => (
-                        <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
-                          Source {sourceIndex + 1}
-                        </a>
-                      ))}
-                    </div>
-                  )}
-                </div>
-                <div className={styles.visualTile}>
-                  <VisualTile type={section.visualHint} index={index} />
-                </div>
-              </motion.article>
-            ))}
-          </div>
+        <div className={styles.sections}>
+          {content.sections.map((section, index) => {
+            const sectionImage = section.visualHint === "image" ? imageVisuals[index % Math.max(imageVisuals.length, 1)] : undefined;
+            return (
+            <motion.article
+              className={styles.card}
+              key={section.id}
+              initial={{ opacity: 0, y: 28 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-80px" }}
+              transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.14) }}
+            >
+              <div>
+                <span className={styles.eyebrow}>{section.eyebrow}</span>
+                <h2>{section.title}</h2>
+                <p>{section.body}</p>
+                {section.sourceUrls?.length > 0 && (
+                  <div className={styles.sectionSources}>
+                    {section.sourceUrls.map((sourceUrl, sourceIndex) => (
+                      <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
+                        Source {sourceIndex + 1}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className={styles.visualTile}>
+                <VisualTile type={section.visualHint} index={index} visual={sectionImage ?? imageVisuals[index + 1]} />
+              </div>
+            </motion.article>
+          );
+          })}
         </div>
       </section>
 

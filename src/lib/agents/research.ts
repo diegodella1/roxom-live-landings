@@ -15,16 +15,33 @@ const extractMetaImage = (html: string) => {
   const patterns = [
     /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
     /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["'][^>]*>/i,
+    /<meta[^>]+property=["']og:image:url["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image:url["'][^>]*>/i,
     /<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
-    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["'][^>]*>/i,
+    /<meta[^>]+name=["']twitter:image:src["'][^>]+content=["']([^"']+)["'][^>]*>/i,
+    /<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image:src["'][^>]*>/i,
+    /<link[^>]+rel=["']image_src["'][^>]+href=["']([^"']+)["'][^>]*>/i,
+    /<link[^>]+href=["']([^"']+)["'][^>]+rel=["']image_src["'][^>]*>/i
   ];
 
   for (const pattern of patterns) {
     const match = html.match(pattern);
-    if (match?.[1]?.startsWith("http")) return match[1];
+    if (match?.[1]) return match[1].replaceAll("&amp;", "&");
   }
 
   return null;
+};
+
+const toAbsoluteImageUrl = (imageUrl: string, sourceUrl: string) => {
+  try {
+    const absoluteUrl = new URL(imageUrl, sourceUrl);
+    if (!["http:", "https:"].includes(absoluteUrl.protocol)) return null;
+    if (absoluteUrl.pathname.endsWith(".svg")) return null;
+    return absoluteUrl.toString();
+  } catch {
+    return null;
+  }
 };
 
 const discoverSourceImages = async (sources: Source[]) => {
@@ -34,12 +51,17 @@ const discoverSourceImages = async (sources: Source[]) => {
       const timeout = setTimeout(() => controller.abort(), 5000);
       try {
         const response = await fetch(source.url, {
-          headers: { "User-Agent": "news-live-landings/1.0" },
+          headers: {
+            Accept: "text/html,application/xhtml+xml",
+            "User-Agent":
+              "Mozilla/5.0 (compatible; NewsLiveLandings/1.0; +https://diegodella.ar/landings)"
+          },
           signal: controller.signal
         });
         if (!response.ok) return null;
         const html = await response.text();
-        const imageUrl = extractMetaImage(html);
+        const rawImageUrl = extractMetaImage(html);
+        const imageUrl = rawImageUrl ? toAbsoluteImageUrl(rawImageUrl, source.url) : null;
         if (!imageUrl) return null;
         return {
           url: imageUrl,
@@ -92,7 +114,7 @@ Research this live news landing topic: "${topic}".
 Use current web sources. Prefer AP, Reuters, Google News results, Bloomberg, BBC, NYT, FT, WSJ, CNBC, CoinDesk, and any other source deemed relevant by legacy and new media standards.
 Every fact must be source-bound. Do not include a claim unless it has a sourceUrl from the returned sources list.
 Find more than a headline: gather chronology, actors, numbers, official statements, market/geopolitical context, and what to watch next.
-Collect image candidates only when the image URL is directly associated with a returned source, such as a source article OpenGraph image or press image.
+Image collection is mandatory when available. Collect photographic image candidates only when the image URL is directly associated with a returned source, such as a source article OpenGraph image, press image, company/government media image, or media kit image. Prefer large landscape images. Do not use icons, logos, avatars, trackers, base64 data URLs, SVGs, or unrelated stock images.
 Return JSON:
 {
   "topic": string,

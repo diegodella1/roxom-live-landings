@@ -70,15 +70,16 @@ Use this exact JSON shape:
   "updateHistory": []
 }
 Stitch design requirements:
-- Layout must be clean, news-agnostic, highly visual, and source-forward.
-- Use a large photographic/visual hero when imageCandidates has a verified image URL.
-- If imageCandidates exists, include at least one VisualAsset with type "image", url, credit, and alt from imageCandidates.
+- Layout must be a premium editorial one-page landing: no TV format, no carousel, no auto-scroll, no ticker motion.
+- It must feel like top editorial quality: strong cover image, concise headline, asymmetric story grid, visible sources, and useful data/context.
+- Use a large photographic hero when imageCandidates has a verified image URL.
+- If imageCandidates exists, include every useful imageCandidate as a VisualAsset with type "image", url, credit, and alt from imageCandidates.
 - Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.
 - Create chart, map, timeline, bubble, surface, or comparison visuals when the sourced facts contain numbers, dates, geography, flows, prices, volumes, or actors.
 - Mark sections with visualHint "chart", "map", "data", or "image" according to the strongest available visual evidence.
 - Avoid the old neon TV/broadcast look.
-- Keep text over imagery to 2-3 lines where possible.
-- Use modular React-friendly regions: Hero, Source Rail, Story Frames, Data/Context, Update History.
+- Keep hero text tight: headline plus 1-2 sentence subheadline. Put detail into sections.
+- Use modular React-friendly regions: Hero, Source Rail, Story Grid, Data/Context, Update History.
 - Do not add any factual claim not present in Writing or Research.
 - Preserve sourceUrls on every section.
 Images: ${JSON.stringify(research.imageCandidates)}
@@ -95,16 +96,14 @@ Writing: ${JSON.stringify(writing)}
       status: "drafting",
       lastUpdatedUtc: new Date().toISOString(),
       sources: research.sources,
-      visuals: primaryImage
-        ? [
-            {
-              type: "image",
-              title: primaryImage.title,
-              url: primaryImage.url,
-              credit: primaryImage.credit,
-              alt: primaryImage.alt
-            } satisfies VisualAsset
-          ]
+      visuals: research.imageCandidates.length > 0
+        ? research.imageCandidates.slice(0, 4).map(image => ({
+            type: "image",
+            title: image.title,
+            url: image.url,
+            credit: image.credit,
+            alt: image.alt
+          }) satisfies VisualAsset)
         : [
             {
               type: "svg",
@@ -137,7 +136,9 @@ Rules:
 - Every quote and data point must include a real sourceUrl from the source list.
 - Every section must include sourceUrls from the source list.
 - If dates differ, distinguish event date from report date.
-- Keep at least 3 sections and at least one renderable visual.
+- Keep at least 5 sections when the source material supports it.
+- Preserve source-associated image visuals from Research whenever imageCandidates are available.
+- Use a premium editorial one-page layout. Do not use auto-scroll, carousels, ticker motion, or TV-slide language.
 - Use safe, neutral wording. Do not overstate legal claims as fact.
 - Preserve or improve designSpec using the Stitch design system.
 - Set "status" to "critic_review".
@@ -173,6 +174,6 @@ export const defaultStitchDesignSpec = (): LandingDesignSpec => ({
     muted: "#9aa4b2"
   },
   heroTreatment: "large visual background with concise headline and source-aware metadata",
-  motion: "subtle scroll reveal and horizontal story frame motion only when useful",
-  notes: ["Avoid neon TV styling", "Prioritize source clarity", "Use modular React sections"]
+  motion: "subtle reveal only; no auto-scroll, marquee, carousel, or horizontal panning",
+  notes: ["Avoid neon TV styling", "Prioritize source clarity", "Use one-page editorial sections"]
 });
