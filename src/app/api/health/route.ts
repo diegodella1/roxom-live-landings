@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { env } from "@/lib/config";
-import { listLandings } from "@/lib/db";
+import { listActiveLandings, listLandings } from "@/lib/db";
 
 export const runtime = "nodejs";
 
@@ -8,7 +8,8 @@ export async function GET() {
   return NextResponse.json({
     ok: true,
     service: "news-live-landings",
-    landings: listLandings(1).length,
+    landings: listLandings(100).length,
+    liveLandings: listActiveLandings().length,
     configured: {
       openai: Boolean(env.openaiApiKey),
       telegramBot: Boolean(env.telegramBotToken),
