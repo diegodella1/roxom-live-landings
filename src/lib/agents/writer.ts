@@ -23,7 +23,8 @@ Every section must include sourceUrls from the source list.
 Every quote and data point must include sourceUrl from the source list.
 Do not invent quotes. If exact quotation text is not present in the research, return an empty quotes array.
 Write like a strong news/product editorial brief: specific, concise, contextual, and useful for a reader who wants the whole story quickly.
-Create 5-7 sections when the research supports it. Each section body should be 70-130 words and contain only sourced information.
+Create 6-8 sections when the research supports it. Each section body should be 95-170 words and contain only sourced information.
+Make it worth reading: include the setup, what changed, why it matters, the key people/institutions, the timeline, the strongest numbers, risks/uncertainties, and what to watch next when supported by facts.
 Include at least 3 dataPoints when the research contains numbers, dates, counts, prices, named actors, or status markers.
 Use visualHint "chart" for sections with time, price, count, volume, comparison, route, or risk data. Use "map" for geography. Use "image" for actor/place/object sections.
 Return JSON:

@@ -95,6 +95,11 @@ const landingStatusMessage = (landing: LandingRecord) => {
   return `IN PROGRESS | topic=${landing.topic} | slug=${landing.slug} | status=${landing.status}`;
 };
 
+const stageMessage = (topic: string, stage: string, detail?: string) => {
+  const suffix = detail ? ` | detail=${detail.slice(0, 500)}` : "";
+  return `STAGE | topic=${topic} | stage=${stage}${suffix}`;
+};
+
 export const handleTelegramUpdate = async (update: TelegramUpdate) => {
   const message = update.message;
   if (!message?.text) return { ok: true, ignored: true };
@@ -131,7 +136,11 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
 
       const existing = getLandingBySlug(slugify(discovery.selectedTopic));
       const landing =
-        existing && !retryableStatuses.has(existing.status) ? existing : await startLiveLanding(discovery.selectedTopic);
+        existing && !retryableStatuses.has(existing.status)
+          ? existing
+          : await startLiveLanding(discovery.selectedTopic, (stage, detail) =>
+              sendTelegramMessage(chatId, stageMessage(discovery.selectedTopic, stage, detail))
+            );
       await sendTelegramMessage(chatId, landingStatusMessage(landing));
       await sendTelegramMessage(chatId, tokenUsageMessage(startedAt));
       return { ok: true, slug: landing.slug, topic: discovery.selectedTopic };
@@ -147,8 +156,8 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
         return { ok: true, slug: existing.slug, existing: true };
       }
 
-      await sendTelegramMessage(chatId, `PROJECT STARTED | topic=${arg} | stage=research${existing ? " | mode=retry" : ""}`);
-      const landing = await startLiveLanding(arg);
+      await sendTelegramMessage(chatId, `PROJECT STARTED | topic=${arg}${existing ? " | mode=retry" : ""}`);
+      const landing = await startLiveLanding(arg, (stage, detail) => sendTelegramMessage(chatId, stageMessage(arg, stage, detail)));
       await sendTelegramMessage(chatId, landingStatusMessage(landing));
       await sendTelegramMessage(chatId, tokenUsageMessage(startedAt));
       return { ok: true, slug: landing.slug };

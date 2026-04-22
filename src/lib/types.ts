@@ -54,7 +54,7 @@ export type StorySection = {
 export type LandingDesignSpec = {
   source: "stitch";
   styleName: string;
-  layout: "visual-cover" | "split-brief" | "timeline" | "data-dashboard";
+  layout: "visual-cover" | "person-profile" | "event-brief" | "timeline" | "data-dashboard" | "market-brief";
   mood: string;
   palette: {
     background: string;

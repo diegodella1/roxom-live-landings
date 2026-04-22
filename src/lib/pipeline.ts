@@ -18,6 +18,11 @@ import type { LandingContent, LandingRecord } from "./types";
 
 const retryableStatuses = new Set(["blocked", "cancelled", "failed"]);
 const maxCriticRepairAttempts = 3;
+type PipelineStageReporter = (stage: string, detail?: string) => Promise<void> | void;
+
+const reportStage = async (reporter: PipelineStageReporter | undefined, stage: string, detail?: string) => {
+  if (reporter) await reporter(stage, detail);
+};
 
 const createOrRestartDraft = (input: { existing: LandingRecord | null; content: LandingContent; slug: string; topic: string }) => {
   const content = {
@@ -112,14 +117,18 @@ const safeBriefContent = (input: {
   };
 };
 
-export const startLiveLanding = async (topic: string) => {
+export const startLiveLanding = async (topic: string, onStage?: PipelineStageReporter) => {
   const slug = slugify(topic);
   const existing = getLandingBySlug(slug);
   if (existing && !retryableStatuses.has(existing.status)) return existing;
 
+  await reportStage(onStage, "researching", "Gathering current sources, facts, numbers, and image candidates.");
   const research = await runResearch(topic);
+  await reportStage(onStage, "writing", `Building the editorial brief from ${research.sources.length} sources and ${research.facts.length} sourced facts.`);
   const writing = await runWriter(research);
+  await reportStage(onStage, "designing", `Choosing topic-aware layout and visuals. Image candidates found: ${research.imageCandidates.length}.`);
   const designed = await runDesigner(topic, research, writing);
+  await reportStage(onStage, "saving_draft", `Saving draft slug=${slug}.`);
   let draft;
   try {
     draft = createOrRestartDraft({ existing, content: designed, slug, topic });
@@ -131,14 +140,17 @@ export const startLiveLanding = async (topic: string) => {
     throw error;
   }
   let content = draft.content;
+  await reportStage(onStage, "critic_review", "Checking sourcing, wording, visuals, and publication readiness.");
   let critic = await runCritic(content, draft.id);
 
   for (let attempt = 0; !critic.approved && critic.severity === "changes_requested" && attempt < maxCriticRepairAttempts; attempt += 1) {
+    await reportStage(onStage, "repairing", `Critic requested changes. Autonomous repair attempt ${attempt + 1}/${maxCriticRepairAttempts}.`);
     content = await runDesignerRevision(content, critic, research);
     critic = await runCritic(content, draft.id);
   }
 
   if (!critic.approved && critic.severity === "blocked") {
+    await reportStage(onStage, "blocked", critic.summary);
     return updateLandingContent(
       draft.id,
       {
@@ -159,10 +171,12 @@ export const startLiveLanding = async (topic: string) => {
   }
 
   if (!critic.approved) {
+    await reportStage(onStage, "publishing_safe_brief", "Publishing conservative sourced version after repair attempts.");
     const safeContent = safeBriefContent({ base: content, writing, slug, topic, reason: critic.summary });
     return updateLandingContent(draft.id, safeContent, "live");
   }
 
+  await reportStage(onStage, "publishing", "Critic approved. Publishing final URL.");
   return updateLandingContent(draft.id, { ...content, status: "live" }, "live");
 };
 

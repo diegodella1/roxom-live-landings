@@ -1,6 +1,6 @@
 import { runJsonAgent } from "../openai";
 import type { ImageCandidate, Source, SourceBoundFact } from "../types";
-import { discoverSourceImages } from "../source-images";
+import { discoverSourceImages, discoverWikimediaImages } from "../source-images";
 import { editorialSystem } from "./prompts";
 import { fallbackSources } from "./fallbacks";
 
@@ -17,7 +17,10 @@ const normalizeResearch = async (output: ResearchOutput): Promise<ResearchOutput
   const generatedImageCandidates = (output.imageCandidates ?? []).filter(
     image => image.url?.startsWith("http") && output.sources.some(source => source.url === image.sourceUrl)
   );
-  const discoveredImageCandidates = await discoverSourceImages(output.sources);
+  const discoveredImageCandidates = [
+    ...await discoverSourceImages(output.sources),
+    ...await discoverWikimediaImages(output.topic)
+  ];
   const imageUrls = new Set<string>();
   return {
     ...output,

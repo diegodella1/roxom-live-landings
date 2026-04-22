@@ -74,9 +74,58 @@ export const discoverSourceImages = async (sources: Source[], limit = 5, timeout
     });
 };
 
+export const discoverWikimediaImages = async (topic: string, limit = 2) => {
+  const params = new URLSearchParams({
+    action: "query",
+    generator: "search",
+    gsrsearch: topic,
+    gsrlimit: String(limit),
+    prop: "pageimages|info",
+    pithumbsize: "1600",
+    inprop: "url",
+    format: "json",
+    origin: "*"
+  });
+
+  try {
+    const response = await fetch(`https://en.wikipedia.org/w/api.php?${params.toString()}`, {
+      headers: {
+        Accept: "application/json",
+        "User-Agent": "Mozilla/5.0 (compatible; NewsLiveLandings/1.0; +https://diegodella.ar/landings)"
+      },
+      signal: AbortSignal.timeout(4500)
+    });
+    if (!response.ok) return [];
+    const data = await response.json() as {
+      query?: {
+        pages?: Record<string, {
+          title?: string;
+          fullurl?: string;
+          thumbnail?: { source?: string };
+        }>;
+      };
+    };
+
+    return Object.values(data.query?.pages ?? {})
+      .filter(page => page.thumbnail?.source && page.fullurl)
+      .map(page => ({
+        url: page.thumbnail?.source ?? "",
+        title: page.title ?? topic,
+        credit: "Wikimedia / Wikipedia",
+        alt: `Reference image for ${page.title ?? topic}`,
+        sourceUrl: page.fullurl ?? ""
+      } satisfies ImageCandidate));
+  } catch {
+    return [];
+  }
+};
+
 export const withDiscoveredSourceImages = async (content: LandingContent): Promise<LandingContent> => {
   if (content.visuals.some(visual => visual.type === "image" && visual.url?.startsWith("http"))) return content;
-  const images = await discoverSourceImages(content.sources, 4, 3200);
+  const images = [
+    ...await discoverSourceImages(content.sources, 4, 3200),
+    ...await discoverWikimediaImages(content.topic, 2)
+  ];
   if (images.length === 0) return content;
 
   const imageVisuals = images.map(image => ({

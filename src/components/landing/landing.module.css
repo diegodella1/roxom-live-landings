@@ -85,6 +85,52 @@
   background: #202024;
 }
 
+.shell[data-layout="person-profile"] .hero {
+  grid-template-columns: minmax(340px, 0.86fr) minmax(280px, 0.48fr);
+  grid-template-areas:
+    "media data"
+    "media copy";
+}
+
+.shell[data-layout="person-profile"] .heroMedia {
+  min-height: min(720px, calc(100dvh - 110px));
+}
+
+.shell[data-layout="person-profile"] .heroCopy {
+  align-self: start;
+}
+
+.shell[data-layout="event-brief"] .hero {
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas:
+    "copy"
+    "media"
+    "data";
+}
+
+.shell[data-layout="event-brief"] .heroMedia {
+  min-height: clamp(260px, 42vw, 520px);
+}
+
+.shell[data-layout="data-dashboard"] .sections,
+.shell[data-layout="market-brief"] .sections {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.shell[data-layout="data-dashboard"] .card,
+.shell[data-layout="market-brief"] .card,
+.shell[data-layout="data-dashboard"] .card:first-child,
+.shell[data-layout="market-brief"] .card:first-child,
+.shell[data-layout="data-dashboard"] .card:nth-child(2),
+.shell[data-layout="market-brief"] .card:nth-child(2),
+.shell[data-layout="data-dashboard"] .card:nth-child(4n),
+.shell[data-layout="market-brief"] .card:nth-child(4n),
+.shell[data-layout="data-dashboard"] .card:nth-child(5n),
+.shell[data-layout="market-brief"] .card:nth-child(5n) {
+  grid-column: auto;
+  grid-template-columns: 1fr;
+}
+
 .heroMedia::after {
   position: absolute;
   inset: 0;
@@ -518,6 +564,23 @@
       "data";
     min-height: min(680px, calc(100dvh - 32px));
     padding: 14px;
+  }
+
+  .shell[data-layout="person-profile"] .hero {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "media"
+      "copy"
+      "data";
+  }
+
+  .shell[data-layout="person-profile"] .heroMedia {
+    min-height: 420px;
+  }
+
+  .shell[data-layout="data-dashboard"] .sections,
+  .shell[data-layout="market-brief"] .sections {
+    grid-template-columns: 1fr;
   }
 
   .visualTile {

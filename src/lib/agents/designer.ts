@@ -72,6 +72,12 @@ Use this exact JSON shape:
 Stitch design requirements:
 - Layout must be a premium editorial one-page landing: no TV format, no carousel, no auto-scroll, no ticker motion.
 - It must feel like top editorial quality: strong cover image, concise headline, asymmetric story grid, visible sources, and useful data/context.
+- Choose the layout from the topic:
+  - person-profile: one dominant person, founder, executive, politician, athlete, artist, or suspect. Use face/portrait imagery as the main experience.
+  - event-brief: event, conflict, hearing, lawsuit, launch, accident, speech, policy decision, or breaking incident. Use scene/context imagery and timeline structure.
+  - market-brief: price action, stocks, crypto, rates, commodities, earnings, treasury, ETF, or macro move. Use data-first hierarchy with chart visuals.
+  - data-dashboard: multi-metric topic where numbers explain the story better than a scene.
+  - visual-cover: default when none of the above dominates.
 - Use a large photographic hero when imageCandidates has a verified image URL.
 - If imageCandidates exists, include every useful imageCandidate as a VisualAsset with type "image", url, credit, and alt from imageCandidates.
 - Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.

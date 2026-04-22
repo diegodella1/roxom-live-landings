@@ -5,11 +5,13 @@ import { motion } from "framer-motion";
 import type { LandingContent, VisualAsset } from "@/lib/types";
 import styles from "./landing.module.css";
 
+const imageProxyUrl = (url: string) => `/landings/api/source-image?url=${encodeURIComponent(url)}`;
+
 function VisualTile({ type, index, visual }: { type: string; index: number; visual?: VisualAsset }) {
   if (visual?.type === "image" && visual.url) {
     return (
       <figure className={styles.photoVisual}>
-        <img src={visual.url} alt={visual.alt} loading={index === 0 ? "eager" : "lazy"} />
+        <img src={imageProxyUrl(visual.url)} alt={visual.alt} loading={index === 0 ? "eager" : "lazy"} />
         <figcaption>{visual.credit}</figcaption>
       </figure>
     );
@@ -56,13 +58,13 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
   const heroImage = imageVisuals[0];
 
   return (
-    <main className={styles.shell}>
+    <main className={styles.shell} data-layout={content.designSpec?.layout ?? "visual-cover"}>
       <div className={styles.editorialTexture} aria-hidden="true" />
 
       <section className={styles.hero}>
         {heroImage && (
           <figure className={styles.heroMedia}>
-            <img src={heroImage.url} alt={heroImage.alt} fetchPriority="high" />
+            <img src={imageProxyUrl(heroImage.url)} alt={heroImage.alt} fetchPriority="high" />
             <figcaption>{heroImage.credit}</figcaption>
           </figure>
         )}
