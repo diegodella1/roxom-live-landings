@@ -7,15 +7,26 @@ import styles from "./landing.module.css";
 
 export function LandingRenderer({ content }: { content: LandingContent }) {
   const { scrollYProgress } = useScroll();
-  const heroShift = useTransform(scrollYProgress, [0, 1], [0, -140]);
+  const heroShift = useTransform(scrollYProgress, [0, 1], [0, -70]);
   const gridShift = useTransform(scrollYProgress, [0, 1], [0, 90]);
+  const heroImage = content.visuals.find(visual => visual.type === "image" && visual.url)?.url;
+  const hasSlides = content.sections.length > 1;
 
   return (
     <main className={styles.shell}>
       <motion.div className={styles.parallaxGrid} style={{ y: gridShift }} aria-hidden="true" />
       <NeonBackdrop />
 
-      <section className={styles.hero}>
+      <section
+        className={styles.hero}
+        style={
+          heroImage
+            ? {
+                backgroundImage: `linear-gradient(90deg, rgba(13,14,14,.9), rgba(13,14,14,.38) 58%, rgba(13,14,14,.72)), url("${heroImage}")`
+              }
+            : undefined
+        }
+      >
         <motion.div
           className={styles.heroCopy}
           style={{ y: heroShift }}
@@ -54,26 +65,34 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
         <span>{content.summary}</span>
       </div>
 
-      <section className={styles.sections}>
-        {content.sections.map((section, index) => (
-          <motion.article
-            className={styles.card}
-            key={section.id}
-            initial={{ opacity: 0, y: 36 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true, margin: "-80px" }}
-            transition={{ duration: 0.5, delay: Math.min(index * 0.08, 0.24) }}
-          >
-            <div>
-              <span className={styles.eyebrow}>{section.eyebrow}</span>
-              <h2>{section.title}</h2>
-              <p>{section.body}</p>
-            </div>
-            <div className={styles.visualTile}>
-              <span>{section.visualHint}</span>
-            </div>
-          </motion.article>
-        ))}
+      <section className={styles.storyBlock} aria-label="Story frames">
+        <div className={styles.storyHeader}>
+          <span>Story Frames</span>
+          {hasSlides && <small>Auto-scrolling</small>}
+        </div>
+        <div className={hasSlides ? styles.sectionsViewport : styles.singleSection}>
+          <div className={hasSlides ? `${styles.sections} ${styles.carousel}` : `${styles.sections} ${styles.fadeStack}`}>
+            {content.sections.map((section, index) => (
+              <motion.article
+                className={styles.card}
+                key={section.id}
+                initial={{ opacity: 0, y: 28 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-80px" }}
+                transition={{ duration: 0.45, delay: Math.min(index * 0.06, 0.18) }}
+              >
+                <div>
+                  <span className={styles.eyebrow}>{section.eyebrow}</span>
+                  <h2>{section.title}</h2>
+                  <p>{section.body}</p>
+                </div>
+                <div className={styles.visualTile}>
+                  <span>{section.visualHint}</span>
+                </div>
+              </motion.article>
+            ))}
+          </div>
+        </div>
       </section>
 
       <section className={styles.quoteData}>

@@ -29,18 +29,30 @@
   display: grid;
   grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
   gap: clamp(20px, 3vw, 32px);
-  align-items: start;
-  min-height: auto;
+  align-items: end;
+  min-height: min(680px, calc(100vh - 64px));
   max-width: 1240px;
   margin: 0 auto;
-  padding: clamp(48px, 7vw, 88px) 0 clamp(28px, 4vw, 52px);
+  padding: clamp(28px, 4vw, 52px);
+  overflow: hidden;
+  background:
+    linear-gradient(90deg, rgba(13, 14, 14, 0.92), rgba(13, 14, 14, 0.48) 58%, rgba(13, 14, 14, 0.76)),
+    radial-gradient(circle at 78% 24%, rgba(116, 209, 255, 0.26), transparent 34%),
+    linear-gradient(135deg, rgba(255, 81, 103, 0.2), rgba(125, 1, 177, 0.26));
+  background-position: center;
+  background-size: cover;
+  border: 1px solid rgba(116, 209, 255, 0.38);
+  border-right-color: rgba(255, 179, 181, 0.58);
+  border-bottom-color: rgba(233, 179, 255, 0.58);
+  border-radius: 8px;
+  box-shadow: 0 0 52px rgba(116, 209, 255, 0.14), inset 0 0 80px rgba(0, 0, 0, 0.28);
 }
 
 .heroCopy h1 {
-  max-width: 980px;
+  max-width: 900px;
   margin: 18px 0;
   font-family: var(--font-display), sans-serif;
-  font-size: clamp(42px, 6vw, 76px);
+  font-size: clamp(44px, 6.6vw, 86px);
   line-height: 1;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -107,6 +119,7 @@
 }
 
 .signalPanel {
+  align-self: end;
   padding: clamp(18px, 2vw, 24px);
   border-radius: 8px;
 }
@@ -154,6 +167,7 @@
   animation: marquee 22s linear infinite;
 }
 
+.storyBlock,
 .sections,
 .quoteData,
 .updates {
@@ -161,16 +175,59 @@
   margin: 0 auto;
 }
 
+.storyBlock {
+  position: relative;
+  z-index: 2;
+}
+
+.storyHeader {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  color: var(--tertiary);
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.storyHeader small {
+  color: var(--primary);
+  font: inherit;
+}
+
+.sectionsViewport {
+  overflow: hidden;
+  border-radius: 8px;
+}
+
+.singleSection {
+  overflow: hidden;
+}
+
 .sections {
-  display: grid;
+  display: flex;
   gap: 18px;
+}
+
+.carousel {
+  width: max-content;
+  animation: storyPan 24s ease-in-out infinite alternate;
+}
+
+.fadeStack {
+  display: grid;
+  animation: fadeLift 0.65s ease-out both;
 }
 
 .card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 220px;
+  grid-template-columns: minmax(0, 1fr) 200px;
   gap: clamp(18px, 2vw, 24px);
   align-items: stretch;
+  flex: 0 0 min(760px, calc(100vw - 64px));
   min-height: 0;
   padding: clamp(20px, 2.5vw, 28px);
   border-radius: 8px;
@@ -308,6 +365,28 @@
   }
 }
 
+@keyframes storyPan {
+  0%,
+  18% {
+    transform: translateX(0);
+  }
+  82%,
+  100% {
+    transform: translateX(calc(-100% + min(760px, calc(100vw - 64px))));
+  }
+}
+
+@keyframes fadeLift {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (max-width: 800px) {
   .shell {
     padding: 20px;
@@ -320,11 +399,23 @@
   }
 
   .hero {
-    min-height: auto;
-    padding: 80px 0 40px;
+    min-height: min(620px, calc(100vh - 40px));
+    padding: 28px;
   }
 
   .card {
+    flex-basis: calc(100vw - 40px);
     min-height: auto;
+  }
+
+  .visualTile {
+    min-height: 120px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .carousel,
+  .fadeStack {
+    animation: none;
   }
 }
