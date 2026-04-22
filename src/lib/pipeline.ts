@@ -23,7 +23,16 @@ export const startLiveLanding = async (topic: string) => {
   const research = await runResearch(topic);
   const writing = await runWriter(research);
   const designed = await runDesigner(topic, research, writing);
-  const draft = createLanding({ ...designed, slug, topic, status: "critic_review" });
+  let draft;
+  try {
+    draft = createLanding({ ...designed, slug, topic, status: "critic_review" });
+  } catch (error) {
+    if (String(error).includes("UNIQUE constraint failed")) {
+      const landing = getLandingBySlug(slug);
+      if (landing) return landing;
+    }
+    throw error;
+  }
   const critic = await runCritic(draft.content, draft.id);
 
   if (!critic.approved) {

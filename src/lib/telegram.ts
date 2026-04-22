@@ -2,6 +2,7 @@ import { env } from "./config";
 import { getLandingBySlug, listLandings, recordTelegramEvent, updateLandingStatus } from "./db";
 import { publicFinalUrl, runLiveCycleForLanding, startLiveLanding } from "./pipeline";
 import { slugify } from "./slug";
+import type { LandingRecord } from "./types";
 
 type TelegramMessage = {
   message_id: number;
@@ -10,6 +11,7 @@ type TelegramMessage = {
 };
 
 type TelegramUpdate = {
+  update_id?: number;
   message?: TelegramMessage;
 };
 
@@ -61,6 +63,18 @@ const findSlug = (value: string) => {
   return slugify(value);
 };
 
+const landingStatusMessage = (landing: LandingRecord) => {
+  if (landing.status === "live") {
+    return `FINAL URL READY | topic=${landing.topic} | final_url=${landing.finalUrl} | index_url=${env.landingsIndexUrl}`;
+  }
+
+  if (landing.status === "blocked") {
+    return `BLOCKED | topic=${landing.topic} | slug=${landing.slug} | status=${landing.status}`;
+  }
+
+  return `IN PROGRESS | topic=${landing.topic} | slug=${landing.slug} | status=${landing.status}`;
+};
+
 export const handleTelegramUpdate = async (update: TelegramUpdate) => {
   const message = update.message;
   if (!message?.text) return { ok: true, ignored: true };
@@ -87,16 +101,15 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
 
     if (command === "/start_live") {
       if (!arg) throw new Error("Usage: /start_live <topic>");
+      const existing = getLandingBySlug(slugify(arg));
+      if (existing) {
+        await sendTelegramMessage(chatId, landingStatusMessage(existing));
+        return { ok: true, slug: existing.slug, existing: true };
+      }
+
       await sendTelegramMessage(chatId, `PROJECT STARTED | topic=${arg} | stage=research`);
       const landing = await startLiveLanding(arg);
-      if (landing.status === "live") {
-        await sendTelegramMessage(
-          chatId,
-          `FINAL URL READY | topic=${landing.topic} | final_url=${landing.finalUrl} | index_url=${env.landingsIndexUrl}`
-        );
-      } else {
-        await sendTelegramMessage(chatId, `BLOCKED | topic=${landing.topic} | stage=critic | status=${landing.status}`);
-      }
+      await sendTelegramMessage(chatId, landingStatusMessage(landing));
       return { ok: true, slug: landing.slug };
     }
 
