@@ -1,5 +1,6 @@
 import type { CriticResult, LandingContent, LiveMonitorResult, Source } from "../types";
 import { slugify } from "../slug";
+import { enforceTopLineLanding } from "../landing-quality";
 
 const now = () => new Date().toISOString();
 
@@ -15,13 +16,19 @@ export const fallbackSources = (topic: string): Source[] => [
     outlet: "Bloomberg",
     url: "https://www.bloomberg.com/",
     credibility: "tier1"
+  },
+  {
+    title: `Global context coverage for ${topic}`,
+    outlet: "BBC",
+    url: "https://www.bbc.com/news",
+    credibility: "tier1"
   }
 ];
 
 export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingContent => {
   const sources = fallbackSources(topic);
   const primarySourceUrl = sources[0].url;
-  return {
+  return enforceTopLineLanding({
     slug,
     topic,
     headline: `Live brief: ${topic}`,
@@ -95,7 +102,7 @@ export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingCo
     notes: ["Avoid neon TV styling", "Prioritize source clarity", "Use modular React sections"]
   },
   updateHistory: []
-  };
+  });
 };
 
 export const fallbackCriticApproved = (): CriticResult => ({

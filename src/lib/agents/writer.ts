@@ -25,6 +25,7 @@ Do not invent quotes. If exact quotation text is not present in the research, re
 Write like a premium magazine/news feature in the spirit of Vice: immersive, scene-setting, sharp, human, and narrative-driven, while staying factual and sourced.
 This must read as a real article, not a tiny dossier, not bullet-note intelligence, and not a product brief.
 Create 9-14 sections when the research supports it. Each section body should be 150-260 words and contain only sourced information.
+Every requested topic must become a top-line landing, not a loose article dump. Cover these reader sections when supported by the research: what is known now, why it matters, who is involved, current status/result, timeline or comparison, data/impact, reactions, open uncertainty, and what could change next.
 Make the article experiential: open with tension, explain the stakes, introduce the people/institutions, reconstruct the timeline, show the money/power/risk dynamics, include market/social/political reactions, and end with what could happen next when supported by facts.
 The format must complement the story. Use a factual timeline when chronology matters; use results/outcomes for elections, status/stakes for competitions, signals/data for markets, profile timeline for people, and impact/official-response structure for crises.
 Use the right journalistic frame for the topic:
@@ -34,7 +35,7 @@ Use the right journalistic frame for the topic:
 - Person profile/news: explain why this person matters now, role/history, allies/critics, direct quotes, controversies/achievements, and what changes next.
 - Event/crisis: explain timeline, geography, actors, impact, official statements, disputed claims, and next decision point.
 Prioritize quotes from relevant parties: candidates, competitors, officials, companies, teams, regulators, analysts, witnesses, or affected people. Use exact quotes only from sources.
-Use section titles that feel like magazine subheads, not generic labels such as "Context", "Data", or "Watch Next".
+Use section titles that feel like magazine subheads, not generic labels such as "Context", "Data", or "Watch Next". Eyebrows should be short structural labels that make the page scannable.
 Avoid dry transitions. Each section should move the story forward and connect to the next one.
 Include at least 3 dataPoints when the research contains numbers, dates, counts, prices, named actors, or status markers.
 Use visualHint "chart" for sections with time, price, count, volume, comparison, route, or risk data. Use "map" for geography. Use "image" for actor/place/object sections.

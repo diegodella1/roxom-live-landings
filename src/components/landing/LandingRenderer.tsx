@@ -129,6 +129,39 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
         </motion.div>
       </section>
 
+      <section className={styles.topLineSection} aria-label="Top line">
+        <div className={styles.containerWide}>
+          <div className={styles.topLineGrid}>
+            <div className={styles.topLineLead}>
+              <span>Top Line</span>
+              <p>{content.summary}</p>
+            </div>
+            <div className={styles.topLineStats} aria-label="Landing status">
+              <div>
+                <strong>{content.sections.length}</strong>
+                <span>sections</span>
+              </div>
+              <div>
+                <strong>{content.sources.length}</strong>
+                <span>sources</span>
+              </div>
+              <div>
+                <strong>{content.dataPoints.length}</strong>
+                <span>data points</span>
+              </div>
+            </div>
+            <nav className={styles.storyMap} aria-label="Story sections">
+              {content.sections.slice(0, 9).map((section, index) => (
+                <a href={`#${section.id}`} key={section.id}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{section.eyebrow || section.title}</strong>
+                </a>
+              ))}
+            </nav>
+          </div>
+        </div>
+      </section>
+
       <section className={styles.articleSection} aria-label="Main article">
         <div className={styles.container}>
           <div className={styles.sectionLabel}>
@@ -143,12 +176,14 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
               return (
                 <motion.section
                   className={styles.articleChunk}
+                  id={section.id}
                   key={section.id}
                   initial={{ opacity: 0, y: 18 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true, margin: "-80px" }}
                   transition={{ duration: 0.45 }}
                 >
+                  <span className={styles.articleEyebrow}>{section.eyebrow}</span>
                   <h2>{section.title}</h2>
                   <p>{section.body}</p>
                   <div className={styles.sourceTags} aria-label="Sources for this section">

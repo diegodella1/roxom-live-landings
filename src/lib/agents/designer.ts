@@ -1,4 +1,5 @@
 import { runJsonAgent } from "../openai";
+import { enforceTopLineLanding } from "../landing-quality";
 import { slugify } from "../slug";
 import type { CriticResult, ImageCandidate, LandingContent, LandingDesignSpec, VisualAsset } from "../types";
 import { stitchDesignSystem } from "./prompts";
@@ -8,7 +9,7 @@ import type { WriterOutput } from "./writer";
 const normalizeLandingDesign = (content: LandingContent, fallback: LandingDesignSpec): LandingContent => {
   const sourceUrls = content.sources.map(source => source.url);
   const fallbackSourceUrl = sourceUrls[0] ?? "https://diegodella.ar/landings";
-  return {
+  return enforceTopLineLanding({
     ...content,
     sections: content.sections.map(section => {
       const validSourceUrls = section.sourceUrls?.filter(sourceUrl => sourceUrls.includes(sourceUrl)) ?? [];
@@ -23,7 +24,7 @@ const normalizeLandingDesign = (content: LandingContent, fallback: LandingDesign
       sourceUrl: sourceUrls.includes(point.sourceUrl) ? point.sourceUrl : fallbackSourceUrl
     })),
     designSpec: content.designSpec ?? fallback
-  };
+  });
 };
 
 const ensurePrimaryImage = (content: LandingContent, image?: ImageCandidate) => {
@@ -74,7 +75,7 @@ Use this exact JSON shape:
 Stitch design requirements:
 - Layout must follow the dark magazine/news reference system: full-bleed image hero, long article body, inline imagery, timeline when useful, pull quotes, data/stat section when useful, reactions/source cards, gallery, and footer sources.
 - Do not produce a card-grid landing or compact dossier. The main experience is a readable long-form article with strong narrative pacing and inline visuals.
-- Use vivid green #1ae784 as the main accent and red only for live/breaking/critical states.
+- Use hot pink #ffb3b5 for live/urgent emphasis, neon purple #e9b3ff for structure, bright cyan #74d1ff for data/source links, and red only for critical breaking states.
 - It must feel like a Vice-style news feature: immersive, image-led, edgy but credible, human and specific, with sources visible but not dominating the reading experience.
 - Build topic-specific journalism into the structure, not generic blocks:
   - competition/rivalry pages need competitors, status/standings/result, stakes, momentum shifts, quotes/reactions, and next milestone.
@@ -91,6 +92,7 @@ Stitch design requirements:
   - election-brief: election, referendum, vote, primary, runoff, legislative count, or leadership contest where results/outcomes matter.
   - visual-cover: default when none of the above dominates.
 - The format must complement the nature of the story. Do not force every story into the same rhythm.
+- Every requested item must produce a complete top-line landing with clear sections. The minimum reader contract is: lead, stakes, actors/entities, status or result, timeline/comparison, data or impact, reactions, uncertainty, next watch, and bottom source bibliography.
 - Use a factual timeline only when chronology helps the reader understand the story. For market stories, use signals/data; for competitions, use status/stakes; for elections, use results/outcomes; for people, use profile timeline.
 - Use a large photographic hero when imageCandidates has a verified image URL.
 - If imageCandidates exists, include only story-relevant imageCandidates as VisualAsset objects with type "image", url, credit, alt, relevance, and relevanceReason from imageCandidates.
@@ -98,7 +100,7 @@ Stitch design requirements:
 - Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.
 - Create chart, map, timeline, bubble, surface, or comparison visuals only when they map to specific sourced facts/dataPoints. A chart without sourced values is not allowed.
 - Mark sections with visualHint "chart", "map", "data", or "image" according to the strongest available visual evidence.
-- Avoid the old neon TV/broadcast look.
+- Use the retro-futurist broadcast look with restraint: neon glass, strong safe areas, source clarity, and no decorative clutter.
 - Keep hero text tight: headline plus 1-2 sentence subheadline. Put detail into sections.
 - Use modular React-friendly regions: Hero, Article, Timeline, Quotes, Data/Impact, Reactions, Gallery, Footer Sources.
 - The landing must end with a complete source bibliography. Inline source tags are required, but the full source list belongs at the bottom.
@@ -195,10 +197,10 @@ export const defaultStitchDesignSpec = (): LandingDesignSpec => ({
   palette: {
     background: "#060707",
     text: "#ffffff",
-    accent: "#1ae784",
+    accent: "#ffb3b5",
     muted: "rgba(255,255,255,0.60)"
   },
-  heroTreatment: "full-bleed photographic hero with dark gradient, live badge, topic tags, and concise headline",
+  heroTreatment: "full-bleed photographic hero with dark gradient, live badge, topic tags, concise headline, and top-line story map",
   motion: "subtle reveal only; no auto-scroll, marquee, carousel, or horizontal panning",
-  notes: ["Use dark newsroom reference style", "Prioritize source clarity", "Use article-first editorial sections"]
+  notes: ["Use retro-futurist broadcast newsroom style", "Prioritize source clarity", "Use article-first editorial sections"]
 });

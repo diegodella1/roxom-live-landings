@@ -15,6 +15,7 @@ import { deltaHash, runLiveMonitor, runLiveUpdater } from "./agents/live";
 import { runResearch } from "./agents/research";
 import { runWriter, type WriterOutput } from "./agents/writer";
 import type { LandingContent, LandingRecord } from "./types";
+import { enforceTopLineLanding } from "./landing-quality";
 
 const retryableStatuses = new Set(["drafting", "critic_review", "blocked", "cancelled", "failed"]);
 const maxCriticRepairAttempts = 3;
@@ -53,7 +54,7 @@ const safeBriefContent = (input: {
   const primarySource = input.base.sources[0];
   const primarySourceUrl = primarySource?.url ?? finalUrlForSlug(input.slug);
 
-  return {
+  return enforceTopLineLanding({
     ...input.base,
     slug: input.slug,
     topic: input.topic,
@@ -114,7 +115,7 @@ const safeBriefContent = (input: {
       },
       ...input.base.updateHistory
     ]
-  };
+  });
 };
 
 export const startLiveLanding = async (topic: string, onStage?: PipelineStageReporter) => {
