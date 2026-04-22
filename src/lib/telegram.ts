@@ -50,6 +50,7 @@ const helpText = () => [
   "/start_live <topic>",
   "/status <slug_or_topic>",
   "/force_update <slug_or_topic>",
+  "/cancel_live <slug_or_topic>",
   "/pause_live <slug_or_topic>",
   "/resume_live <slug_or_topic>",
   "/final_url <slug_or_topic>",
@@ -74,6 +75,10 @@ const landingStatusMessage = (landing: LandingRecord) => {
     return `BLOCKED | topic=${landing.topic} | slug=${landing.slug} | status=${landing.status}${reason}`;
   }
 
+  if (landing.status === "cancelled") {
+    return `CANCELLED | topic=${landing.topic} | slug=${landing.slug}`;
+  }
+
   return `IN PROGRESS | topic=${landing.topic} | slug=${landing.slug} | status=${landing.status}`;
 };
 
@@ -95,6 +100,7 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
 
     if (command === "/landings") {
       const latest = listLandings(10)
+        .filter(landing => landing.status === "live")
         .map(landing => `- ${landing.slug}: ${landing.finalUrl}`)
         .join("\n");
       await sendTelegramMessage(chatId, [`LANDINGS INDEX: ${env.landingsIndexUrl}`, latest].filter(Boolean).join("\n"));
@@ -150,6 +156,16 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
       if (!landing) throw new Error(`No landing found for ${arg}`);
       updateLandingStatus(landing.id, command === "/pause_live" ? "paused" : "live");
       await sendTelegramMessage(chatId, `${command === "/pause_live" ? "PAUSED" : "RESUMED"} | slug=${slug}`);
+      return { ok: true };
+    }
+
+    if (command === "/cancel_live") {
+      if (!arg) throw new Error("Usage: /cancel_live <slug_or_topic>");
+      const slug = findSlug(arg);
+      const landing = getLandingBySlug(slug);
+      if (!landing) throw new Error(`No landing found for ${arg}`);
+      updateLandingStatus(landing.id, "cancelled");
+      await sendTelegramMessage(chatId, `CANCELLED | slug=${slug}`);
       return { ok: true };
     }
 

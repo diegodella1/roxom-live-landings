@@ -13,6 +13,8 @@ export const runCritic = async (content: LandingContent, landingId?: number) => 
     system: editorialSystem,
     prompt: `
 Act as Critic for an experimental live news landing. Approve only if the landing is factual, sourced, visually usable, and safe to publish.
+Use "changes_requested" for issues the agents can fix by rewriting, removing unsupported claims, improving attribution, or tightening visuals.
+Use "blocked" only when publishing requires external human action, missing credentials, unavailable sources, legal uncertainty that cannot be worded safely, or a production incident.
 Return JSON:
 {
   "approved": boolean,

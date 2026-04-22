@@ -1,4 +1,4 @@
-export type LandingStatus = "drafting" | "critic_review" | "live" | "paused" | "blocked" | "failed";
+export type LandingStatus = "drafting" | "critic_review" | "live" | "paused" | "blocked" | "cancelled" | "failed";
 
 export type Materiality = "NO_MATERIAL_CHANGE" | "MINOR" | "IMPORTANT" | "CRITICAL" | "BLOCKER";
 

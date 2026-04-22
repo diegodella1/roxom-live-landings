@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
 export default function LandingsIndexPage() {
-  const landings = listLandings(100);
+  const landings = listLandings(100).filter(landing => landing.status === "live");
 
   return (
     <main className={styles.index}>

@@ -1,6 +1,6 @@
 import { runJsonAgent } from "../openai";
 import { slugify } from "../slug";
-import type { LandingContent, VisualAsset } from "../types";
+import type { CriticResult, LandingContent, VisualAsset } from "../types";
 import { miamiDesignSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
 import type { WriterOutput } from "./writer";
@@ -57,3 +57,38 @@ Writing: ${JSON.stringify(writing)}
     })
   });
 };
+
+export const runDesignerRevision = (content: LandingContent, critic: CriticResult, research: ResearchOutput) =>
+  runJsonAgent<LandingContent>({
+    agent: "designer",
+    system: miamiDesignSystem,
+    prompt: `
+Revise this live news landing JSON so it can pass Critic without human intervention.
+Keep the same JSON shape and slug. Return only the complete revised JSON.
+
+Rules:
+- Remove any factual claim that is not directly supported by the source list.
+- Attribute allegations clearly as allegations or reported claims.
+- Every quote and data point must include a real sourceUrl from the source list.
+- If dates differ, distinguish event date from report date.
+- Keep at least 3 sections and at least one renderable visual.
+- Use safe, neutral wording. Do not overstate legal claims as fact.
+- Set "status" to "critic_review".
+
+Critic feedback:
+${JSON.stringify(critic)}
+
+Research:
+${JSON.stringify(research)}
+
+Current landing JSON:
+${JSON.stringify(content)}
+`,
+    fallback: () => ({
+      ...content,
+      status: "critic_review",
+      summary: content.sources.length > 0 ? content.summary : `This live brief tracks ${content.topic} with verified source requirements.`,
+      quotes: content.quotes.filter(quote => content.sources.some(source => source.url === quote.sourceUrl)),
+      dataPoints: content.dataPoints.filter(point => content.sources.some(source => source.url === point.sourceUrl))
+    })
+  });

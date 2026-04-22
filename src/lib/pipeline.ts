@@ -10,7 +10,7 @@ import {
 import { finalUrlForSlug } from "./config";
 import { slugify } from "./slug";
 import { runCritic } from "./agents/critic";
-import { runDesigner } from "./agents/designer";
+import { runDesigner, runDesignerRevision } from "./agents/designer";
 import { deltaHash, runLiveMonitor, runLiveUpdater } from "./agents/live";
 import { runResearch } from "./agents/research";
 import { runWriter } from "./agents/writer";
@@ -33,13 +33,19 @@ export const startLiveLanding = async (topic: string) => {
     }
     throw error;
   }
-  const critic = await runCritic(draft.content, draft.id);
+  let content = draft.content;
+  let critic = await runCritic(content, draft.id);
+
+  if (!critic.approved && critic.severity === "changes_requested") {
+    content = await runDesignerRevision(content, critic, research);
+    critic = await runCritic(content, draft.id);
+  }
 
   if (!critic.approved) {
     return updateLandingContent(
       draft.id,
       {
-        ...draft.content,
+        ...content,
         status: "blocked",
         updateHistory: [
           {
@@ -48,14 +54,14 @@ export const startLiveLanding = async (topic: string) => {
             summary: critic.summary,
             sourceUrls: []
           },
-          ...draft.content.updateHistory
+          ...content.updateHistory
         ]
       },
       "blocked"
     );
   }
 
-  return updateLandingContent(draft.id, { ...draft.content, status: "live" }, "live");
+  return updateLandingContent(draft.id, { ...content, status: "live" }, "live");
 };
 
 export const runLiveCycleForLanding = async (slug: string) => {
