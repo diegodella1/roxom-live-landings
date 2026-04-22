@@ -13,6 +13,12 @@ export const validateLandingContent = (content: LandingContent): CriticResult =>
     issues.push("At least one sourced image URL is required for the landing hero when available.");
   }
   if (content.dataPoints.length < 3) issues.push("At least three sourced data/context points are required.");
+  if (content.visuals.some(visual => visual.type === "image" && visual.url && !visual.relevanceReason)) {
+    issues.push("Every image visual must include a relevanceReason explaining why it belongs to this story.");
+  }
+  if (content.visuals.some(visual => visual.type === "chart" && !visual.relevanceReason)) {
+    issues.push("Every chart visual must include a relevanceReason tied to sourced data.");
+  }
 
   for (const source of content.sources) {
     if (!source.url.startsWith("http")) issues.push(`Invalid source URL: ${source.url}`);
@@ -39,6 +45,18 @@ export const validateLandingContent = (content: LandingContent): CriticResult =>
 
   for (const point of content.dataPoints) {
     if (!sourceUrls.has(point.sourceUrl)) issues.push(`Data point cites a source URL that is not attached to the landing: ${point.sourceUrl}`);
+  }
+
+  for (const visual of content.visuals) {
+    if (visual.type !== "image" || !visual.relevanceReason) continue;
+    const relevanceText = `${visual.title} ${visual.alt} ${visual.relevanceReason}`.toLowerCase();
+    const topicTerms = content.topic.toLowerCase().split(/\W+/).filter(term => term.length > 3);
+    const sourceTerms = content.sources.flatMap(source => `${source.title} ${source.outlet}`.toLowerCase().split(/\W+/)).filter(term => term.length > 3);
+    const allowedTerms = new Set([...topicTerms, ...sourceTerms]);
+    const hasTopicalOverlap = [...allowedTerms].some(term => relevanceText.includes(term));
+    if (!hasTopicalOverlap && visual.relevance !== "direct") {
+      issues.push(`Image visual appears weakly related to the story: ${visual.title}`);
+    }
   }
 
   if (content.designSpec?.source !== "stitch") issues.push("Landing is missing a Stitch design specification.");

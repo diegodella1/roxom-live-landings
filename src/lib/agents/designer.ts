@@ -36,7 +36,9 @@ const ensurePrimaryImage = (content: LandingContent, image?: ImageCandidate) => 
         title: image.title,
         url: image.url,
         credit: image.credit,
-        alt: image.alt
+        alt: image.alt,
+        relevance: image.relevance,
+        relevanceReason: image.relevanceReason
       },
       ...content.visuals
     ]
@@ -81,9 +83,10 @@ Stitch design requirements:
   - data-dashboard: multi-metric topic where numbers explain the story better than a scene.
   - visual-cover: default when none of the above dominates.
 - Use a large photographic hero when imageCandidates has a verified image URL.
-- If imageCandidates exists, include every useful imageCandidate as a VisualAsset with type "image", url, credit, and alt from imageCandidates.
+- If imageCandidates exists, include only story-relevant imageCandidates as VisualAsset objects with type "image", url, credit, alt, relevance, and relevanceReason from imageCandidates.
+- Images must be directly related to the news, named people, named places, named institutions, or the exact context. Do not use decorative stock imagery when a more relevant image exists.
 - Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.
-- Create chart, map, timeline, bubble, surface, or comparison visuals when the sourced facts contain numbers, dates, geography, flows, prices, volumes, or actors.
+- Create chart, map, timeline, bubble, surface, or comparison visuals only when they map to specific sourced facts/dataPoints. A chart without sourced values is not allowed.
 - Mark sections with visualHint "chart", "map", "data", or "image" according to the strongest available visual evidence.
 - Avoid the old neon TV/broadcast look.
 - Keep hero text tight: headline plus 1-2 sentence subheadline. Put detail into sections.
@@ -110,7 +113,9 @@ Writing: ${JSON.stringify(writing)}
             title: image.title,
             url: image.url,
             credit: image.credit,
-            alt: image.alt
+            alt: image.alt,
+            relevance: image.relevance,
+            relevanceReason: image.relevanceReason
           }) satisfies VisualAsset)
         : [
             {

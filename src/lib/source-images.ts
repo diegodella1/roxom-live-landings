@@ -56,7 +56,9 @@ export const discoverSourceImages = async (sources: Source[], limit = 5, timeout
           title: source.title,
           credit: source.outlet,
           alt: `Image associated with ${source.title}`,
-          sourceUrl: source.url
+          sourceUrl: source.url,
+          relevance: "direct",
+          relevanceReason: `OpenGraph image from source article: ${source.title}`
         } satisfies ImageCandidate;
       } finally {
         clearTimeout(timeout);
@@ -113,7 +115,9 @@ export const discoverWikimediaImages = async (topic: string, limit = 2) => {
         title: page.title ?? topic,
         credit: "Wikimedia / Wikipedia",
         alt: `Reference image for ${page.title ?? topic}`,
-        sourceUrl: page.fullurl ?? ""
+        sourceUrl: page.fullurl ?? "",
+        relevance: "contextual",
+        relevanceReason: `Wikimedia reference image for ${page.title ?? topic}`
       } satisfies ImageCandidate));
   } catch {
     return [];
@@ -133,7 +137,9 @@ export const withDiscoveredSourceImages = async (content: LandingContent): Promi
     title: image.title,
     url: image.url,
     credit: image.credit,
-    alt: image.alt
+    alt: image.alt,
+    relevance: image.relevance,
+    relevanceReason: image.relevanceReason
   }) satisfies VisualAsset);
 
   return {

@@ -17,6 +17,26 @@ const sectionDateLabel = (section: StorySection, index: number) => {
   return match?.[0] ?? `Step ${index + 1}`;
 };
 
+const termsFor = (text: string) => text.toLowerCase().split(/\W+/).filter(term => term.length > 3);
+
+const visualMatchesSection = (visual: VisualAsset | undefined, section: StorySection, content: LandingContent) => {
+  if (!visual) return false;
+  if (visual.relevance === "direct") return true;
+  const visualText = termsFor(`${visual.title} ${visual.alt} ${visual.relevanceReason ?? ""}`);
+  const sectionText = new Set(termsFor(`${section.title} ${section.body} ${content.topic}`));
+  return visualText.some(term => sectionText.has(term));
+};
+
+const chooseSectionImage = (
+  images: Array<VisualAsset & { url: string }>,
+  section: StorySection,
+  content: LandingContent,
+  index: number
+) => {
+  if (images.length === 0) return undefined;
+  return images.find(image => visualMatchesSection(image, section, content)) ?? (section.visualHint === "image" ? images[index % images.length] : undefined);
+};
+
 function SectionMedia({ section, visual, index }: { section: StorySection; visual?: VisualAsset; index: number }) {
   if (visual?.type === "image" && visual.url) {
     return (
@@ -99,7 +119,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
           <article className={styles.articleBody}>
             <p className={styles.lede}>{content.summary}</p>
             {content.sections.map((section, index) => {
-              const visual = articleImages[index % Math.max(articleImages.length, 1)];
+              const visual = chooseSectionImage(articleImages, section, content, index);
               const shouldShowMedia = Boolean(visual) && (index === 1 || index === 3 || section.visualHint === "image");
               return (
                 <motion.section
@@ -187,15 +207,21 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
               </a>
             ))}
           </div>
-          <div className={styles.chartWrapper}>
-            <p>Source density</p>
-            <small>Sources and data points attached to this landing</small>
-            <div className={styles.sourceChart} aria-hidden="true">
-              <span style={{ height: `${Math.min(96, Math.max(20, content.sources.length * 14))}%` }} />
-              <span style={{ height: `${Math.min(96, Math.max(20, content.sections.length * 10))}%` }} />
-              <span style={{ height: `${Math.min(96, Math.max(20, content.dataPoints.length * 14))}%` }} />
+          {content.dataPoints.length >= 2 && (
+            <div className={styles.chartWrapper}>
+              <p>Data from the story</p>
+              <small>{content.dataPoints.slice(0, 3).map(point => point.label).join(" · ")}</small>
+              <div className={styles.sourceChart} aria-label="Chart based on sourced data points">
+                {content.dataPoints.slice(0, 5).map(point => (
+                  <span
+                    key={`${point.label}-${point.value}`}
+                    title={`${point.label}: ${point.value}`}
+                    style={{ height: `${Math.min(96, Math.max(20, point.value.length * 6))}%` }}
+                  />
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </section>
 

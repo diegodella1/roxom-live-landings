@@ -32,6 +32,8 @@ export type ImageCandidate = {
   credit: string;
   alt: string;
   sourceUrl: string;
+  relevance?: "direct" | "contextual" | "fallback";
+  relevanceReason?: string;
 };
 
 export type VisualAsset = {
@@ -40,6 +42,8 @@ export type VisualAsset = {
   url?: string;
   credit: string;
   alt: string;
+  relevance?: "direct" | "contextual" | "fallback";
+  relevanceReason?: string;
 };
 
 export type StorySection = {

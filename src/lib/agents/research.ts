@@ -52,12 +52,13 @@ Every fact must be source-bound. Do not include a claim unless it has a sourceUr
 Find more than a headline: gather chronology, actors, numbers, official statements, market/geopolitical context, human stakes, power dynamics, social/market reactions, visual scene details, and what to watch next.
 Collect enough detail to support a long-form magazine/news article, not a short dossier.
 Image collection is mandatory when available. Collect photographic image candidates only when the image URL is directly associated with a returned source, such as a source article OpenGraph image, press image, company/government media image, or media kit image. Prefer large landscape images. Do not use icons, logos, avatars, trackers, base64 data URLs, SVGs, or unrelated stock images.
+For every imageCandidate, explain why it is relevant to the story. Use relevance "direct" only for images from an article/source about the exact story, "contextual" for a known person/place/institution/entity in the story, and "fallback" only when no direct/contextual image exists.
 Return JSON:
 {
   "topic": string,
   "facts": [{"claim": string, "sourceUrl": string}],
   "sources": [{"title": string, "outlet": string, "url": string, "publishedAt": string, "credibility": "tier1"|"tier2"|"unknown"}],
-  "imageCandidates": [{"url": string, "title": string, "credit": string, "alt": string, "sourceUrl": string}],
+  "imageCandidates": [{"url": string, "title": string, "credit": string, "alt": string, "sourceUrl": string, "relevance": "direct"|"contextual"|"fallback", "relevanceReason": string}],
   "visualDirections": string[]
 }
 Minimum six credible sources when available. Minimum sixteen source-bound facts when available. No unsupported claims.

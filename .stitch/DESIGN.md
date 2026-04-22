@@ -60,6 +60,9 @@ Use restrained fade-up and optional scanline effect. No carousel, no auto-scroll
 - Sources appear inline and at the bottom.
 - Do not fabricate images, quotes, numbers, or dates.
 - Use fallback images only when they are topically relevant and properly credited.
+- Content is king, context is queen, update is prince: article substance first, explanatory context second, live-update mechanics third.
+- Every image must directly relate to the news, named person, named institution, named location, or exact context.
+- Every graph must map to sourced story data. No decorative charts, no source-density charts, no generic visuals.
 
 ## 8. Anti-Patterns
 

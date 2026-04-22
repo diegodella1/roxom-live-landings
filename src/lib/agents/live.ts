@@ -36,6 +36,8 @@ Apply this verified live delta to the landing JSON. Preserve structure and sourc
 Preserve or improve the current dark magazine/news article look: full-bleed hero, long-form article sections, inline visuals, timeline, quotes, data/impact, reactions, gallery, and source footer.
 Do not convert the landing into a compact dossier or card grid.
 Add the new facts into the relevant article sections or append a substantial update section if needed.
+Content is king, context is queen, update is prince: prioritize factual article substance first, explanatory context second, and live-update mechanics third.
+Only add or keep images/graphs that are directly related to the story, named entities, locations, or sourced data. Remove irrelevant decorative visuals.
 Return the full updated LandingContent JSON.
 Current landing:
 ${JSON.stringify(content)}
