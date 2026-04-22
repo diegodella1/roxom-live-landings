@@ -2,36 +2,47 @@
 
 /* eslint-disable @next/next/no-img-element -- News images come from arbitrary source domains discovered at runtime. */
 import { motion } from "framer-motion";
-import type { LandingContent, VisualAsset } from "@/lib/types";
+import type { LandingContent, StorySection, VisualAsset } from "@/lib/types";
 import styles from "./landing.module.css";
 
 const imageProxyUrl = (url: string) => `/landings/api/source-image?url=${encodeURIComponent(url)}`;
 
-function VisualTile({ type, index, visual }: { type: string; index: number; visual?: VisualAsset }) {
+const sourceLabel = (content: LandingContent, sourceUrl: string) => {
+  const source = content.sources.find(item => item.url === sourceUrl);
+  return source ? source.outlet : "Source";
+};
+
+const sectionDateLabel = (section: StorySection, index: number) => {
+  const match = section.body.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}\b|\b\d{4}\b/i);
+  return match?.[0] ?? `Step ${index + 1}`;
+};
+
+function SectionMedia({ section, visual, index }: { section: StorySection; visual?: VisualAsset; index: number }) {
   if (visual?.type === "image" && visual.url) {
     return (
-      <figure className={styles.photoVisual}>
+      <figure className={styles.articleImageBlock}>
         <img src={imageProxyUrl(visual.url)} alt={visual.alt} loading={index === 0 ? "eager" : "lazy"} />
         <figcaption>{visual.credit}</figcaption>
       </figure>
     );
   }
 
-  if (type === "chart" || type === "data") {
-    const bars = [42, 68, 54, 82, 63].map(value => Math.max(18, Math.min(92, value + index * 3)));
+  if (section.visualHint === "chart" || section.visualHint === "data") {
+    const bars = [64, 42, 88, 58, 76].map(value => Math.max(16, Math.min(94, value + index * 2)));
     return (
-      <div className={styles.chartVisual} aria-hidden="true">
-        <div className={styles.chartLine} />
-        {bars.map((height, barIndex) => (
-          <span style={{ height: `${height}%` }} key={`${height}-${barIndex}`} />
-        ))}
+      <div className={styles.chartCard} aria-label="Data visual">
+        <div className={styles.chartBars}>
+          {bars.map((height, barIndex) => (
+            <span style={{ height: `${height}%` }} key={`${height}-${barIndex}`} />
+          ))}
+        </div>
       </div>
     );
   }
 
-  if (type === "map") {
+  if (section.visualHint === "map") {
     return (
-      <div className={styles.mapVisual} aria-hidden="true">
+      <div className={styles.mapCard} aria-label="Location visual">
         <span />
         <span />
         <span />
@@ -39,16 +50,7 @@ function VisualTile({ type, index, visual }: { type: string; index: number; visu
     );
   }
 
-  if (type === "image") {
-    return <div className={styles.imageVisual} aria-hidden="true" />;
-  }
-
-  return (
-    <div className={styles.abstractVisual} aria-hidden="true">
-      <span />
-      <span />
-    </div>
-  );
+  return null;
 }
 
 export function LandingRenderer({ content }: { content: LandingContent }) {
@@ -56,126 +58,211 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
     visual.type === "image" && Boolean(visual.url)
   ));
   const heroImage = imageVisuals[0];
+  const articleImages = imageVisuals.slice(1);
+  const heroTags = [content.designSpec?.layout?.replace("-", " "), content.topic].filter(Boolean).slice(0, 2);
 
   return (
     <main className={styles.shell} data-layout={content.designSpec?.layout ?? "visual-cover"}>
-      <div className={styles.editorialTexture} aria-hidden="true" />
+      <nav className={styles.navbar} aria-label="Landing navigation">
+        <span className={styles.brand}>Live News</span>
+      </nav>
 
-      <section className={styles.hero}>
+      <section className={styles.hero} aria-label="Lead story">
         {heroImage && (
-          <figure className={styles.heroMedia}>
-            <img src={imageProxyUrl(heroImage.url)} alt={heroImage.alt} fetchPriority="high" />
-            <figcaption>{heroImage.credit}</figcaption>
-          </figure>
+          <img className={styles.heroImage} src={imageProxyUrl(heroImage.url)} alt={heroImage.alt} fetchPriority="high" />
         )}
+        <div className={styles.heroGradient} aria-hidden="true" />
+        <div className={styles.heroScan} aria-hidden="true" />
         <motion.div
-          className={styles.heroCopy}
-          initial={{ opacity: 0, y: 28 }}
+          className={styles.heroContent}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, ease: "easeOut" }}
         >
-          <div className={styles.kicker}>
-            <span className={styles.liveDot} />
-            Live Landing
+          <div className={styles.heroEyebrow}>
+            <span className={styles.breakingBadge}><span aria-hidden="true" />Live</span>
+            {heroTags.map(tag => <span className={styles.heroTag} key={tag}>{tag}</span>)}
+            <span className={styles.heroDate}>{new Date(content.lastUpdatedUtc).toLocaleString()}</span>
           </div>
-          <h1>{content.headline}</h1>
-          <p>{content.subheadline}</p>
-          <div className={styles.meta}>
-            <span>{content.topic}</span>
-            <span>Updated {new Date(content.lastUpdatedUtc).toLocaleString()}</span>
-          </div>
+          <h1 className={styles.heroHeadline}>{content.headline}</h1>
+          <p className={styles.heroSubheadline}>{content.subheadline}</p>
+          {heroImage && <p className={styles.heroCredit}>Image: {heroImage.credit}</p>}
         </motion.div>
-        <motion.aside
-          className={styles.signalPanel}
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.12 }}
-          aria-label="Key sourced data"
-        >
-          <div className={styles.panelLabel}>What Matters</div>
-          {content.dataPoints.slice(0, 4).map(point => (
-            <div className={styles.dataRow} key={point.label}>
-              <strong>{point.value}</strong>
-              <span>{point.label}</span>
-            </div>
-          ))}
-        </motion.aside>
       </section>
 
-      <div className={styles.ticker}>
-        <span>{content.summary}</span>
-      </div>
-
-      <section className={styles.storyBlock} aria-label="Story frames">
-        <div className={styles.storyHeader}>
-          <span>Story</span>
-          <small>{content.sections.length} sourced frames</small>
-        </div>
-        <div className={styles.sections}>
-          {content.sections.map((section, index) => {
-            const sectionImage = section.visualHint === "image" ? imageVisuals[index % Math.max(imageVisuals.length, 1)] : undefined;
-            return (
-            <motion.article
-              className={styles.card}
-              key={section.id}
-              initial={{ opacity: 0, y: 28 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{ duration: 0.45, delay: Math.min(index * 0.04, 0.14) }}
-            >
-              <div>
-                <span className={styles.eyebrow}>{section.eyebrow}</span>
-                <h2>{section.title}</h2>
-                <p>{section.body}</p>
-                {section.sourceUrls?.length > 0 && (
-                  <div className={styles.sectionSources}>
+      <section className={styles.articleSection} aria-label="Main article">
+        <div className={styles.container}>
+          <div className={styles.sectionLabel}>
+            <span>Briefing</span>
+            <i aria-hidden="true" />
+          </div>
+          <article className={styles.articleBody}>
+            <p className={styles.lede}>{content.summary}</p>
+            {content.sections.map((section, index) => {
+              const visual = articleImages[index % Math.max(articleImages.length, 1)];
+              const shouldShowMedia = Boolean(visual) && (index === 1 || index === 3 || section.visualHint === "image");
+              return (
+                <motion.section
+                  className={styles.articleChunk}
+                  key={section.id}
+                  initial={{ opacity: 0, y: 18 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-80px" }}
+                  transition={{ duration: 0.45 }}
+                >
+                  <h2>{section.title}</h2>
+                  <p>{section.body}</p>
+                  <div className={styles.sourceTags}>
                     {section.sourceUrls.map((sourceUrl, sourceIndex) => (
                       <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
-                        Source {sourceIndex + 1}
+                        {sourceLabel(content, sourceUrl)} {sourceIndex + 1}
                       </a>
                     ))}
                   </div>
-                )}
-              </div>
-              <div className={styles.visualTile}>
-                <VisualTile type={section.visualHint} index={index} visual={sectionImage ?? imageVisuals[index + 1]} />
-              </div>
-            </motion.article>
-          );
-          })}
+                  {shouldShowMedia && <SectionMedia section={section} visual={visual} index={index} />}
+                </motion.section>
+              );
+            })}
+          </article>
         </div>
       </section>
 
-      <section className={styles.quoteData}>
-        {content.quotes.slice(0, 2).map(quote => (
-          <blockquote className={styles.quote} key={quote.quote}>
-            <p>&ldquo;{quote.quote}&rdquo;</p>
-            <cite>{quote.attribution}</cite>
-          </blockquote>
-        ))}
-        <div className={styles.sources}>
-          <h2>Sources</h2>
-          {content.sources.map(source => (
-            <a href={source.url} target="_blank" rel="noreferrer" key={source.url}>
-              <strong>{source.outlet}</strong>
-              <span>{source.title}</span>
-            </a>
-          ))}
+      <section className={styles.contextSection} aria-label="Timeline">
+        <div className={styles.container}>
+          <div className={styles.sectionLabel}>
+            <span>How We Got Here</span>
+            <i aria-hidden="true" />
+          </div>
+          <ol className={styles.timeline}>
+            {content.sections.slice(0, 8).map((section, index) => (
+              <li className={styles.timelineItem} key={section.id}>
+                <span className={styles.timelineDate}>{sectionDateLabel(section, index)}</span>
+                <span className={styles.timelineDot} aria-hidden="true" />
+                <div>
+                  <p>{section.body}</p>
+                  <small>{section.sourceUrls.map(sourceUrl => sourceLabel(content, sourceUrl)).join(" · ")}</small>
+                </div>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
+
+      {content.quotes.length > 0 && (
+        <section className={styles.quotesSection} aria-label="Key quotes">
+          <div className={styles.containerWide}>
+            <div className={styles.sectionLabel}>
+              <span>Key Quotes</span>
+              <i aria-hidden="true" />
+            </div>
+            <div className={styles.quotesGrid}>
+              {content.quotes.slice(0, 6).map(quote => (
+                <blockquote className={styles.quoteCard} key={quote.quote}>
+                  <span aria-hidden="true">&ldquo;</span>
+                  <p>{quote.quote}</p>
+                  <footer>
+                    <strong>{quote.attribution}</strong>
+                    <a href={quote.sourceUrl} target="_blank" rel="noreferrer">{sourceLabel(content, quote.sourceUrl)}</a>
+                  </footer>
+                </blockquote>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      <section className={styles.dataSection} aria-label="Data and impact">
+        <div className={styles.containerWide}>
+          <div className={styles.sectionLabel}>
+            <span>Data & Impact</span>
+            <i aria-hidden="true" />
+          </div>
+          <div className={styles.statGrid}>
+            {content.dataPoints.slice(0, 8).map(point => (
+              <a className={styles.statCard} href={point.sourceUrl} target="_blank" rel="noreferrer" key={`${point.label}-${point.value}`}>
+                <span>{point.label}</span>
+                <strong>{point.value}</strong>
+                <p>{point.context}</p>
+                <small>{sourceLabel(content, point.sourceUrl)}</small>
+              </a>
+            ))}
+          </div>
+          <div className={styles.chartWrapper}>
+            <p>Source density</p>
+            <small>Sources and data points attached to this landing</small>
+            <div className={styles.sourceChart} aria-hidden="true">
+              <span style={{ height: `${Math.min(96, Math.max(20, content.sources.length * 14))}%` }} />
+              <span style={{ height: `${Math.min(96, Math.max(20, content.sections.length * 10))}%` }} />
+              <span style={{ height: `${Math.min(96, Math.max(20, content.dataPoints.length * 14))}%` }} />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section className={styles.reactionsSection} aria-label="Reactions and perspectives">
+        <div className={styles.containerWide}>
+          <div className={styles.sectionLabel}>
+            <span>Reactions</span>
+            <i aria-hidden="true" />
+          </div>
+          <div className={styles.reactionsGrid}>
+            {content.sources.slice(0, 6).map(source => (
+              <a className={styles.reactionCard} href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+                <span aria-hidden="true">{source.outlet.slice(0, 2).toUpperCase()}</span>
+                <div>
+                  <strong>{source.outlet}</strong>
+                  <small>{source.credibility}</small>
+                </div>
+                <p>{source.title}</p>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {imageVisuals.length > 1 && (
+        <section className={styles.gallerySection} aria-label="Image gallery">
+          <div className={styles.containerWide}>
+            <div className={styles.sectionLabel}>
+              <span>Images</span>
+              <i aria-hidden="true" />
+            </div>
+            <div className={styles.galleryGrid}>
+              {imageVisuals.slice(0, 8).map(visual => (
+                <figure className={styles.galleryItem} key={visual.url}>
+                  <img src={imageProxyUrl(visual.url)} alt={visual.alt} loading="lazy" />
+                  <figcaption>{visual.credit}</figcaption>
+                </figure>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {content.updateHistory.length > 0 && (
         <section className={styles.updates}>
-          <h2>Live Update History</h2>
-          {content.updateHistory.slice(0, 5).map(update => (
-            <div key={`${update.timestampUtc}-${update.summary}`}>
-              <strong>{update.materiality}</strong>
-              <p>{update.summary}</p>
-              <span>{new Date(update.timestampUtc).toLocaleString()}</span>
+          <div className={styles.container}>
+            <div className={styles.sectionLabel}>
+              <span>Live Update History</span>
+              <i aria-hidden="true" />
             </div>
-          ))}
+            {content.updateHistory.slice(0, 5).map(update => (
+              <div key={`${update.timestampUtc}-${update.summary}`}>
+                <strong>{update.materiality}</strong>
+                <p>{update.summary}</p>
+                <span>{new Date(update.timestampUtc).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
         </section>
       )}
+
+      <footer className={styles.footer}>
+        <p>
+          <strong>Live News Landings</strong> · Updated {new Date(content.lastUpdatedUtc).toLocaleString()} · Sources:{" "}
+          {content.sources.map(source => source.outlet).join(", ")}
+        </p>
+      </footer>
     </main>
   );
 }

@@ -7,11 +7,11 @@ Return JSON only, with no Markdown fence.
 `;
 
 export const stitchDesignSystem = `
-Design direction: Stitch-first source-forward news landing.
-Style: top-tier editorial one-page web experience, premium visual hierarchy, source transparency, restrained motion, no brand-specific TV styling.
-Palette: deep neutral surfaces, bright but restrained accent color, high contrast text, muted metadata.
-Typography: Space Grotesk for headlines and labels, Work Sans for body.
-Layout: modular React-friendly one-pager: large photographic hero, visible source rail, asymmetric story grid, data/context block, update history.
-Motion: subtle reveal only. Do not use auto-scroll, marquees, carousels, or horizontal story panning.
+Design direction: dark financial-news editorial page inspired by modern crypto/geopolitical newsroom microsites.
+Style: full-bleed photographic hero, article-first reading flow, data-rich sections, source transparency, no brand-specific TV styling.
+Palette: near-black #060707 base, deep surface #191919, vivid green #1ae784 accent, red only for breaking/critical states, white text, muted white metadata.
+Typography: DM Sans for headlines/body, JetBrains Mono for metadata/source labels/numbers.
+Layout: sticky simple masthead, full-screen hero with dark gradient, long-form article body, inline images, timeline, quote cards, data/stat cards, reactions/source cards, gallery, footer sources.
+Motion: subtle fade-up and optional scanline only. Do not use auto-scroll, carousels, horizontal story panning, neon-purple styling, or generic card-only layouts.
 Every visible factual content block must preserve source URLs from the research package.
 `;

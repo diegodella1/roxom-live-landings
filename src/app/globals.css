@@ -1,22 +1,25 @@
+@import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+
 :root {
-  --font-display: "Space Grotesk", "Work Sans", "Arial Narrow", system-ui, sans-serif;
-  --font-body: "Work Sans", "Segoe UI", system-ui, sans-serif;
-  --surface: #18181b;
-  --surface-lowest: #121216;
-  --surface-low: #202024;
-  --surface-container: #27272a;
-  --surface-high: #3f3f46;
-  --on-surface: #f4f4f5;
-  --on-variant: #a1a1aa;
-  --outline: rgba(244, 244, 245, 0.14);
-  --outline-variant: rgba(244, 244, 245, 0.08);
-  --primary: #d6ff5f;
-  --primary-hot: #d6ff5f;
-  --secondary: #f4f4f5;
-  --secondary-hot: #e4e4e7;
-  --tertiary: #d6ff5f;
-  --tertiary-hot: #c3ef46;
-  --signal-green: #d6ff5f;
+  --font-display: "DM Sans", "Space Grotesk", system-ui, sans-serif;
+  --font-body: "DM Sans", "Work Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SFMono-Regular", Consolas, monospace;
+  --surface: #060707;
+  --surface-lowest: #060707;
+  --surface-low: #0a0b0b;
+  --surface-container: #191919;
+  --surface-high: #202423;
+  --on-surface: #ffffff;
+  --on-variant: rgba(255, 255, 255, 0.6);
+  --outline: rgba(255, 255, 255, 0.1);
+  --outline-variant: rgba(255, 255, 255, 0.06);
+  --primary: #1ae784;
+  --primary-hot: #1ae784;
+  --secondary: #ffffff;
+  --secondary-hot: rgba(255, 255, 255, 0.88);
+  --tertiary: #1ae784;
+  --tertiary-hot: #16cc74;
+  --signal-green: #1ae784;
   --safe-area: 32px;
   --gutter: 20px;
 }
@@ -36,6 +39,7 @@ body {
   min-height: 100vh;
   font-family: var(--font-body), sans-serif;
   background: var(--surface-lowest);
+  line-height: 1.65;
 }
 
 a {

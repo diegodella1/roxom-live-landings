@@ -70,8 +70,10 @@ Use this exact JSON shape:
   "updateHistory": []
 }
 Stitch design requirements:
-- Layout must be a premium editorial one-page landing: no TV format, no carousel, no auto-scroll, no ticker motion.
-- It must feel like top editorial quality: strong cover image, concise headline, asymmetric story grid, visible sources, and useful data/context.
+- Layout must follow the dark editorial reference system: full-bleed image hero, long article body, timeline, quote cards, data/stat section, reactions/source cards, gallery, and footer sources.
+- Do not produce a card-grid landing. The main experience is a readable article with strong inline visuals and evidence modules.
+- Use vivid green #1ae784 as the main accent and red only for live/breaking/critical states.
+- It must feel like top editorial quality: strong cover image, concise headline, article subheads, visible sources, useful data/context, and a bottom source summary.
 - Choose the layout from the topic:
   - person-profile: one dominant person, founder, executive, politician, athlete, artist, or suspect. Use face/portrait imagery as the main experience.
   - event-brief: event, conflict, hearing, lawsuit, launch, accident, speech, policy decision, or breaking incident. Use scene/context imagery and timeline structure.
@@ -85,7 +87,7 @@ Stitch design requirements:
 - Mark sections with visualHint "chart", "map", "data", or "image" according to the strongest available visual evidence.
 - Avoid the old neon TV/broadcast look.
 - Keep hero text tight: headline plus 1-2 sentence subheadline. Put detail into sections.
-- Use modular React-friendly regions: Hero, Source Rail, Story Grid, Data/Context, Update History.
+- Use modular React-friendly regions: Hero, Article, Timeline, Quotes, Data/Impact, Reactions, Gallery, Footer Sources.
 - Do not add any factual claim not present in Writing or Research.
 - Preserve sourceUrls on every section.
 Images: ${JSON.stringify(research.imageCandidates)}
@@ -174,12 +176,12 @@ export const defaultStitchDesignSpec = (): LandingDesignSpec => ({
   layout: "visual-cover",
   mood: "clear, premium, restrained, news-agnostic",
   palette: {
-    background: "#0f1115",
-    text: "#f5f7fb",
-    accent: "#4da3ff",
-    muted: "#9aa4b2"
+    background: "#060707",
+    text: "#ffffff",
+    accent: "#1ae784",
+    muted: "rgba(255,255,255,0.60)"
   },
-  heroTreatment: "large visual background with concise headline and source-aware metadata",
+  heroTreatment: "full-bleed photographic hero with dark gradient, live badge, topic tags, and concise headline",
   motion: "subtle reveal only; no auto-scroll, marquee, carousel, or horizontal panning",
-  notes: ["Avoid neon TV styling", "Prioritize source clarity", "Use one-page editorial sections"]
+  notes: ["Use dark newsroom reference style", "Prioritize source clarity", "Use article-first editorial sections"]
 });
