@@ -5,6 +5,41 @@ import type { LandingContent } from "@/lib/types";
 import { NeonBackdrop } from "./NeonBackdrop";
 import styles from "./landing.module.css";
 
+function VisualTile({ type, index }: { type: string; index: number }) {
+  if (type === "chart" || type === "data") {
+    const bars = [42, 68, 54, 82, 63].map(value => Math.max(18, Math.min(92, value + index * 3)));
+    return (
+      <div className={styles.chartVisual} aria-hidden="true">
+        <div className={styles.chartLine} />
+        {bars.map((height, barIndex) => (
+          <span style={{ height: `${height}%` }} key={`${height}-${barIndex}`} />
+        ))}
+      </div>
+    );
+  }
+
+  if (type === "map") {
+    return (
+      <div className={styles.mapVisual} aria-hidden="true">
+        <span />
+        <span />
+        <span />
+      </div>
+    );
+  }
+
+  if (type === "image") {
+    return <div className={styles.imageVisual} aria-hidden="true" />;
+  }
+
+  return (
+    <div className={styles.abstractVisual} aria-hidden="true">
+      <span />
+      <span />
+    </div>
+  );
+}
+
 export function LandingRenderer({ content }: { content: LandingContent }) {
   const { scrollYProgress } = useScroll();
   const heroShift = useTransform(scrollYProgress, [0, 1], [0, -70]);
@@ -96,7 +131,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                   )}
                 </div>
                 <div className={styles.visualTile}>
-                  <span>{section.visualHint}</span>
+                  <VisualTile type={section.visualHint} index={index} />
                 </div>
               </motion.article>
             ))}

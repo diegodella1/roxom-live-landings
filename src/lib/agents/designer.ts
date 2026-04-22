@@ -1,6 +1,6 @@
 import { runJsonAgent } from "../openai";
 import { slugify } from "../slug";
-import type { CriticResult, LandingContent, LandingDesignSpec, VisualAsset } from "../types";
+import type { CriticResult, ImageCandidate, LandingContent, LandingDesignSpec, VisualAsset } from "../types";
 import { stitchDesignSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
 import type { WriterOutput } from "./writer";
@@ -26,9 +26,27 @@ const normalizeLandingDesign = (content: LandingContent, fallback: LandingDesign
   };
 };
 
+const ensurePrimaryImage = (content: LandingContent, image?: ImageCandidate) => {
+  if (!image || content.visuals.some(visual => visual.type === "image" && visual.url)) return content;
+  return {
+    ...content,
+    visuals: [
+      {
+        type: "image" as const,
+        title: image.title,
+        url: image.url,
+        credit: image.credit,
+        alt: image.alt
+      },
+      ...content.visuals
+    ]
+  };
+};
+
 export const runDesigner = async (topic: string, research: ResearchOutput, writing: WriterOutput) => {
   const slug = slugify(topic);
   const fallbackDesign = defaultStitchDesignSpec();
+  const primaryImage = research.imageCandidates[0];
   const content = await runJsonAgent<LandingContent>({
     agent: "designer",
     system: stitchDesignSystem,
@@ -53,12 +71,17 @@ Use this exact JSON shape:
 }
 Stitch design requirements:
 - Layout must be clean, news-agnostic, highly visual, and source-forward.
-- Prefer a large photographic/visual hero when a verified image URL exists; otherwise use restrained generated SVG direction.
+- Use a large photographic/visual hero when imageCandidates has a verified image URL.
+- If imageCandidates exists, include at least one VisualAsset with type "image", url, credit, and alt from imageCandidates.
+- Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.
+- Create chart, map, timeline, bubble, surface, or comparison visuals when the sourced facts contain numbers, dates, geography, flows, prices, volumes, or actors.
+- Mark sections with visualHint "chart", "map", "data", or "image" according to the strongest available visual evidence.
 - Avoid the old neon TV/broadcast look.
 - Keep text over imagery to 2-3 lines where possible.
 - Use modular React-friendly regions: Hero, Source Rail, Story Frames, Data/Context, Update History.
 - Do not add any factual claim not present in Writing or Research.
 - Preserve sourceUrls on every section.
+Images: ${JSON.stringify(research.imageCandidates)}
 Topic: ${topic}
 Research: ${JSON.stringify(research)}
 Writing: ${JSON.stringify(writing)}
@@ -72,14 +95,24 @@ Writing: ${JSON.stringify(writing)}
       status: "drafting",
       lastUpdatedUtc: new Date().toISOString(),
       sources: research.sources,
-      visuals: [
-        {
-          type: "svg",
-          title: research.visualDirections[0] ?? "Editorial source-backed visual",
-          credit: "Generated visual direction",
-          alt: "Abstract editorial news visual"
-        } satisfies VisualAsset
-      ],
+      visuals: primaryImage
+        ? [
+            {
+              type: "image",
+              title: primaryImage.title,
+              url: primaryImage.url,
+              credit: primaryImage.credit,
+              alt: primaryImage.alt
+            } satisfies VisualAsset
+          ]
+        : [
+            {
+              type: "svg",
+              title: research.visualDirections[0] ?? "Editorial source-backed visual",
+              credit: "Generated visual direction",
+              alt: "Abstract editorial news visual"
+            } satisfies VisualAsset
+          ],
       sections: writing.sections,
       quotes: writing.quotes,
       dataPoints: writing.dataPoints,
@@ -87,7 +120,7 @@ Writing: ${JSON.stringify(writing)}
       updateHistory: []
     })
   });
-  return normalizeLandingDesign(content, fallbackDesign);
+  return ensurePrimaryImage(normalizeLandingDesign(content, fallbackDesign), primaryImage);
 };
 
 export const runDesignerRevision = async (content: LandingContent, critic: CriticResult, research: ResearchOutput) =>

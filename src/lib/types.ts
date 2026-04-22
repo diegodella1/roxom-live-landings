@@ -25,6 +25,14 @@ export type SourceBoundFact = {
   sourceUrl: string;
 };
 
+export type ImageCandidate = {
+  url: string;
+  title: string;
+  credit: string;
+  alt: string;
+  sourceUrl: string;
+};
+
 export type VisualAsset = {
   type: "image" | "chart" | "map" | "svg";
   title: string;
@@ -38,7 +46,7 @@ export type StorySection = {
   eyebrow: string;
   title: string;
   body: string;
-  visualHint: "image" | "chart" | "quote" | "data" | "svg";
+  visualHint: "image" | "chart" | "map" | "quote" | "data" | "svg";
   sourceUrls: string[];
 };
 

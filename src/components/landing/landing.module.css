@@ -280,6 +280,7 @@
   display: grid;
   place-items: center;
   min-height: 150px;
+  overflow: hidden;
   color: var(--tertiary);
   border: 1px solid rgba(255, 179, 181, 0.5);
   background:
@@ -289,6 +290,92 @@
   font-weight: 700;
   letter-spacing: 0.16em;
   text-transform: uppercase;
+}
+
+.chartVisual {
+  position: relative;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 10px;
+  width: min(220px, 100%);
+  height: 128px;
+}
+
+.chartVisual span {
+  width: 18px;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(180deg, rgba(116, 209, 255, 0.95), rgba(77, 163, 255, 0.22));
+  box-shadow: 0 0 18px rgba(116, 209, 255, 0.24);
+}
+
+.chartLine {
+  position: absolute;
+  inset: 20px 10px auto;
+  height: 48px;
+  border-top: 2px solid rgba(255, 179, 181, 0.85);
+  border-right: 2px solid rgba(255, 179, 181, 0.35);
+  transform: skewY(-14deg);
+}
+
+.mapVisual,
+.imageVisual,
+.abstractVisual {
+  position: relative;
+  width: min(220px, 100%);
+  height: 128px;
+}
+
+.mapVisual {
+  background:
+    linear-gradient(120deg, transparent 20%, rgba(116, 209, 255, 0.45) 21% 22%, transparent 23%),
+    linear-gradient(35deg, transparent 40%, rgba(255, 179, 181, 0.45) 41% 42%, transparent 43%),
+    radial-gradient(circle at 44% 52%, rgba(116, 209, 255, 0.22), transparent 34%);
+}
+
+.mapVisual span {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 18px rgba(255, 179, 181, 0.65);
+}
+
+.mapVisual span:nth-child(1) {
+  left: 28%;
+  top: 32%;
+}
+
+.mapVisual span:nth-child(2) {
+  right: 22%;
+  top: 48%;
+}
+
+.mapVisual span:nth-child(3) {
+  left: 52%;
+  bottom: 22%;
+}
+
+.imageVisual {
+  border-radius: 4px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 45%),
+    radial-gradient(circle at 72% 30%, rgba(116, 209, 255, 0.34), transparent 26%),
+    linear-gradient(160deg, rgba(255, 179, 181, 0.22), rgba(77, 163, 255, 0.16));
+}
+
+.abstractVisual span {
+  position: absolute;
+  inset: 20px;
+  border: 1px solid rgba(116, 209, 255, 0.5);
+  transform: rotate(-8deg);
+}
+
+.abstractVisual span:nth-child(2) {
+  inset: 36px;
+  border-color: rgba(255, 179, 181, 0.55);
+  transform: rotate(12deg);
 }
 
 .quoteData {

@@ -6,9 +6,13 @@ export const validateLandingContent = (content: LandingContent): CriticResult =>
 
   if (!content.headline || content.headline.length < 12) issues.push("Headline is missing or too weak.");
   if (!content.subheadline) issues.push("Subheadline is missing.");
-  if (content.sources.length < 2) issues.push("At least two cited sources are required.");
-  if (content.sections.length < 3) issues.push("At least three story sections are required.");
+  if (content.sources.length < 3) issues.push("At least three cited sources are required.");
+  if (content.sections.length < 5) issues.push("At least five story sections are required for a useful landing.");
   if (!content.visuals.length) issues.push("At least one visual asset or SVG direction is required.");
+  if (!content.visuals.some(visual => visual.type === "image" && visual.url?.startsWith("http"))) {
+    issues.push("At least one sourced image URL is required for the landing hero when available.");
+  }
+  if (content.dataPoints.length < 3) issues.push("At least three sourced data/context points are required.");
 
   for (const source of content.sources) {
     if (!source.url.startsWith("http")) issues.push(`Invalid source URL: ${source.url}`);
@@ -19,6 +23,9 @@ export const validateLandingContent = (content: LandingContent): CriticResult =>
     if (!section.sourceUrls?.length) {
       issues.push(`Missing source URLs for section ${section.id}.`);
       continue;
+    }
+    if (section.body.split(/\s+/).filter(Boolean).length < 45) {
+      issues.push(`Section ${section.id} is too thin; expand it with sourced context.`);
     }
 
     for (const sourceUrl of section.sourceUrls) {
