@@ -1,0 +1,329 @@
+.shell {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  padding: var(--safe-area);
+}
+
+.parallaxGrid {
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  opacity: 0.3;
+  background:
+    linear-gradient(115deg, transparent 0 45%, rgba(255, 81, 103, 0.16) 45% 45.5%, transparent 45.5%),
+    linear-gradient(65deg, transparent 0 50%, rgba(116, 209, 255, 0.14) 50% 50.5%, transparent 50.5%);
+  pointer-events: none;
+}
+
+.hero,
+.ticker,
+.sections,
+.quoteData,
+.updates {
+  position: relative;
+  z-index: 2;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr);
+  gap: 32px;
+  align-items: center;
+  min-height: min(760px, calc(100vh - 64px));
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.heroCopy h1 {
+  max-width: 980px;
+  margin: 18px 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(48px, 8vw, 112px);
+  line-height: 0.95;
+  letter-spacing: -0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 0 28px rgba(255, 81, 103, 0.22);
+}
+
+.heroCopy p {
+  max-width: 720px;
+  color: rgba(227, 226, 226, 0.78);
+  font-size: clamp(18px, 2vw, 24px);
+  line-height: 1.45;
+}
+
+.kicker,
+.meta,
+.panelLabel,
+.eyebrow {
+  font-family: var(--font-display), sans-serif;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.kicker {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 16px;
+  color: var(--surface-lowest);
+  background: linear-gradient(90deg, var(--primary), var(--secondary));
+  border-radius: 999px;
+  box-shadow: 0 0 30px rgba(255, 81, 103, 0.35);
+}
+
+.liveDot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--roxom-green);
+  box-shadow: 0 0 16px var(--roxom-green);
+  animation: pulse 1.4s infinite;
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 28px;
+  color: var(--tertiary);
+}
+
+.signalPanel,
+.card,
+.quote,
+.sources,
+.updates {
+  border: 1px solid rgba(116, 209, 255, 0.42);
+  border-right-color: rgba(255, 179, 181, 0.62);
+  border-bottom-color: rgba(233, 179, 255, 0.62);
+  background: rgba(31, 32, 32, 0.72);
+  box-shadow: 0 0 42px rgba(116, 209, 255, 0.12), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(20px);
+}
+
+.signalPanel {
+  padding: 24px;
+  border-radius: 8px;
+}
+
+.panelLabel {
+  color: var(--primary);
+  margin-bottom: 24px;
+}
+
+.dataRow {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: 16px;
+  align-items: baseline;
+  padding: 18px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.dataRow strong {
+  color: var(--tertiary);
+  font-family: var(--font-display), sans-serif;
+  font-size: 32px;
+}
+
+.dataRow span {
+  color: rgba(227, 226, 226, 0.72);
+}
+
+.ticker {
+  max-width: 1240px;
+  margin: -20px auto 56px;
+  overflow: hidden;
+  color: var(--surface-lowest);
+  background: var(--primary-hot);
+  border-radius: 999px;
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ticker span {
+  display: inline-block;
+  padding: 14px 28px;
+  animation: marquee 22s linear infinite;
+}
+
+.sections,
+.quoteData,
+.updates {
+  max-width: 1240px;
+  margin: 0 auto;
+}
+
+.sections {
+  display: grid;
+  gap: 24px;
+}
+
+.card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 220px;
+  gap: 24px;
+  align-items: stretch;
+  min-height: 260px;
+  padding: 28px;
+  border-radius: 8px;
+}
+
+.eyebrow {
+  color: var(--secondary);
+}
+
+.card h2,
+.sources h2,
+.updates h2 {
+  margin: 12px 0;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-transform: uppercase;
+}
+
+.card p,
+.quote p,
+.updates p {
+  color: rgba(227, 226, 226, 0.78);
+  font-size: 18px;
+  line-height: 1.65;
+}
+
+.visualTile {
+  display: grid;
+  place-items: center;
+  min-height: 190px;
+  color: var(--tertiary);
+  border: 1px solid rgba(255, 179, 181, 0.5);
+  background:
+    radial-gradient(circle, rgba(116, 209, 255, 0.22), transparent 58%),
+    linear-gradient(135deg, rgba(255, 81, 103, 0.16), rgba(125, 1, 177, 0.16));
+  font-family: var(--font-display), sans-serif;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.quoteData {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(280px, 0.7fr);
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.quote,
+.sources,
+.updates {
+  padding: 28px;
+  border-radius: 8px;
+}
+
+.quote p {
+  margin-top: 0;
+  color: white;
+  font-family: var(--font-display), sans-serif;
+  font-size: clamp(24px, 3vw, 42px);
+  line-height: 1.12;
+}
+
+.quote cite {
+  color: var(--primary);
+  font-style: normal;
+}
+
+.sources {
+  display: grid;
+  gap: 12px;
+}
+
+.sources a {
+  display: grid;
+  gap: 4px;
+  padding: 14px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+}
+
+.sources a:hover {
+  border-color: var(--tertiary);
+  box-shadow: 0 0 24px rgba(116, 209, 255, 0.18);
+}
+
+.sources span {
+  color: rgba(227, 226, 226, 0.64);
+}
+
+.updates {
+  margin-top: 24px;
+}
+
+.updates div {
+  padding: 16px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.neonBackdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.neonBackdrop svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 20px rgba(255, 81, 103, 0.24));
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.45);
+    opacity: 0.68;
+  }
+}
+
+@keyframes marquee {
+  0% {
+    transform: translateX(100%);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+@media (max-width: 800px) {
+  .shell {
+    padding: 20px;
+  }
+
+  .hero,
+  .card,
+  .quoteData {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: auto;
+    padding: 80px 0 40px;
+  }
+
+  .card {
+    min-height: auto;
+  }
+}

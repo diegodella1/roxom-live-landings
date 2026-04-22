@@ -1,0 +1,199 @@
+import { basename, dirname, join } from "node:path";
+import { existsSync, mkdirSync } from "node:fs";
+import type { LandingContent, LandingRecord, LandingStatus, Source } from "./types";
+import { env, finalUrlForSlug } from "./config";
+
+type DatabaseSync = {
+  exec(sql: string): void;
+  prepare(sql: string): {
+    all(...params: unknown[]): unknown[];
+    get(...params: unknown[]): unknown;
+    run(...params: unknown[]): { lastInsertRowid?: number | bigint; changes?: number };
+  };
+};
+
+let database: DatabaseSync | null = null;
+
+const dbPath = () => {
+  const raw = env.databaseUrl.replace(/^file:/, "");
+  return raw.startsWith("/") ? raw : join("/tmp", basename(raw));
+};
+
+export const getDb = (): DatabaseSync => {
+  if (database) return database;
+  const file = dbPath();
+  const dir = dirname(file);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  // Load at runtime so Next/Turbopack does not try to bundle the experimental builtin.
+  const sqlite = (process as unknown as { getBuiltinModule?: (id: string) => unknown }).getBuiltinModule?.("node:sqlite") as
+    | { DatabaseSync: new (path: string) => DatabaseSync }
+    | undefined;
+  if (!sqlite) throw new Error("node:sqlite is unavailable. Run this app with Node 22+.");
+  const { DatabaseSync: NodeDatabaseSync } = sqlite;
+  database = new NodeDatabaseSync(file);
+  database.exec(`
+    CREATE TABLE IF NOT EXISTS landings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      slug TEXT NOT NULL UNIQUE,
+      topic TEXT NOT NULL,
+      status TEXT NOT NULL,
+      final_url TEXT NOT NULL,
+      content_json TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      last_cycle_at TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS agent_runs (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      landing_id INTEGER,
+      agent_name TEXT NOT NULL,
+      model TEXT NOT NULL,
+      input_hash TEXT NOT NULL,
+      output_json TEXT NOT NULL,
+      status TEXT NOT NULL,
+      error TEXT,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS live_cycles (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      landing_id INTEGER NOT NULL,
+      materiality TEXT NOT NULL,
+      delta_hash TEXT NOT NULL,
+      critic_result TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS sources (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      landing_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      outlet TEXT NOT NULL,
+      url TEXT NOT NULL,
+      credibility TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS telegram_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      direction TEXT NOT NULL,
+      chat_id TEXT,
+      command TEXT,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+  `);
+  return database;
+};
+
+const now = () => new Date().toISOString();
+
+const rowToLanding = (row: any): LandingRecord => ({
+  id: Number(row.id),
+  slug: row.slug,
+  topic: row.topic,
+  status: row.status,
+  finalUrl: row.final_url,
+  content: JSON.parse(row.content_json),
+  createdAt: row.created_at,
+  updatedAt: row.updated_at,
+  lastCycleAt: row.last_cycle_at ?? undefined
+});
+
+export const createLanding = (content: LandingContent): LandingRecord => {
+  const db = getDb();
+  const timestamp = now();
+  const finalUrl = finalUrlForSlug(content.slug);
+  const result = db.prepare(`
+    INSERT INTO landings (slug, topic, status, final_url, content_json, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(content.slug, content.topic, content.status, finalUrl, JSON.stringify(content), timestamp, timestamp);
+  const landing = getLandingById(Number(result.lastInsertRowid));
+  if (!landing) throw new Error("Landing insert failed");
+  upsertSources(landing.id, content.sources);
+  return landing;
+};
+
+export const updateLandingContent = (id: number, content: LandingContent, status: LandingStatus = content.status) => {
+  const db = getDb();
+  const timestamp = now();
+  db.prepare(`
+    UPDATE landings SET status = ?, content_json = ?, updated_at = ? WHERE id = ?
+  `).run(status, JSON.stringify({ ...content, status }), timestamp, id);
+  upsertSources(id, content.sources);
+  const landing = getLandingById(id);
+  if (!landing) throw new Error("Landing update failed");
+  return landing;
+};
+
+export const updateLandingStatus = (id: number, status: LandingStatus) => {
+  const db = getDb();
+  db.prepare("UPDATE landings SET status = ?, updated_at = ? WHERE id = ?").run(status, now(), id);
+};
+
+export const markLandingCycle = (id: number) => {
+  getDb().prepare("UPDATE landings SET last_cycle_at = ?, updated_at = ? WHERE id = ?").run(now(), now(), id);
+};
+
+export const getLandingById = (id: number) => {
+  const row = getDb().prepare("SELECT * FROM landings WHERE id = ?").get(id);
+  return row ? rowToLanding(row) : null;
+};
+
+export const getLandingBySlug = (slug: string) => {
+  const row = getDb().prepare("SELECT * FROM landings WHERE slug = ?").get(slug);
+  return row ? rowToLanding(row) : null;
+};
+
+export const listLandings = (limit = 50) =>
+  getDb()
+    .prepare("SELECT * FROM landings ORDER BY updated_at DESC LIMIT ?")
+    .all(limit)
+    .map(rowToLanding);
+
+export const listActiveLandings = () =>
+  getDb()
+    .prepare("SELECT * FROM landings WHERE status = 'live' ORDER BY updated_at DESC")
+    .all()
+    .map(rowToLanding);
+
+export const recordAgentRun = (input: {
+  landingId?: number;
+  agentName: string;
+  model: string;
+  inputHash: string;
+  output: unknown;
+  status: "ok" | "error";
+  error?: string;
+}) => {
+  getDb().prepare(`
+    INSERT INTO agent_runs (landing_id, agent_name, model, input_hash, output_json, status, error, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(input.landingId ?? null, input.agentName, input.model, input.inputHash, JSON.stringify(input.output), input.status, input.error ?? null, now());
+};
+
+export const recordLiveCycle = (landingId: number, materiality: string, deltaHash: string, criticResult: unknown) => {
+  getDb().prepare(`
+    INSERT INTO live_cycles (landing_id, materiality, delta_hash, critic_result, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(landingId, materiality, deltaHash, JSON.stringify(criticResult), now());
+};
+
+export const recordTelegramEvent = (direction: "in" | "out", payload: unknown, chatId?: string, command?: string) => {
+  getDb().prepare(`
+    INSERT INTO telegram_events (direction, chat_id, command, payload_json, created_at)
+    VALUES (?, ?, ?, ?, ?)
+  `).run(direction, chatId ?? null, command ?? null, JSON.stringify(payload), now());
+};
+
+const upsertSources = (landingId: number, sources: Source[]) => {
+  const db = getDb();
+  db.prepare("DELETE FROM sources WHERE landing_id = ?").run(landingId);
+  for (const source of sources) {
+    db.prepare(`
+      INSERT INTO sources (landing_id, title, outlet, url, credibility, created_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run(landingId, source.title, source.outlet, source.url, source.credibility, now());
+  }
+};

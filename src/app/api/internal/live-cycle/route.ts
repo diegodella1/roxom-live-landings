@@ -1,0 +1,23 @@
+import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/config";
+import { runScheduledLiveCycle } from "@/lib/scheduler";
+
+export const runtime = "nodejs";
+
+export async function POST(request: NextRequest) {
+  const secret = request.headers.get("x-internal-cron-secret");
+  if (env.internalCronSecret && secret !== env.internalCronSecret) {
+    return NextResponse.json({ ok: false, error: "unauthorized" }, { status: 401 });
+  }
+
+  const results = await runScheduledLiveCycle();
+  return NextResponse.json({
+    ok: true,
+    count: results.length,
+    results: results.map(result => ({
+      slug: result.landing.slug,
+      materiality: result.monitor?.materiality ?? "SKIPPED",
+      updated: result.updated
+    }))
+  });
+}
