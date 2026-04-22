@@ -25,9 +25,19 @@ const responseText = (payload: any) => {
   return chunks.join("\n");
 };
 
+const estimateTokens = (value: unknown) => Math.ceil(JSON.stringify(value).length / 4);
+
+const usageFromPayload = (payload: any, fallbackInput: unknown, fallbackOutput: unknown) => {
+  const inputTokens = Number(payload.usage?.input_tokens ?? payload.usage?.prompt_tokens ?? estimateTokens(fallbackInput));
+  const outputTokens = Number(payload.usage?.output_tokens ?? payload.usage?.completion_tokens ?? estimateTokens(fallbackOutput));
+  const totalTokens = Number(payload.usage?.total_tokens ?? inputTokens + outputTokens);
+  return { inputTokens, outputTokens, totalTokens };
+};
+
 export const runJsonAgent = async <T>(options: RunAgentOptions<T>): Promise<T> => {
   const model = modelForAgent(options.agent);
   const inputHash = hashValue({ system: options.system, prompt: options.prompt });
+  const promptInput = { system: options.system, prompt: options.prompt };
 
   if (!env.openaiApiKey) {
     const output = options.fallback();
@@ -37,7 +47,12 @@ export const runJsonAgent = async <T>(options: RunAgentOptions<T>): Promise<T> =
       model: `${model}:fallback`,
       inputHash,
       output,
-      status: "ok"
+      status: "ok",
+      tokenUsage: {
+        inputTokens: estimateTokens(promptInput),
+        outputTokens: estimateTokens(output),
+        totalTokens: estimateTokens(promptInput) + estimateTokens(output)
+      }
     });
     return output;
   }
@@ -65,17 +80,21 @@ export const runJsonAgent = async <T>(options: RunAgentOptions<T>): Promise<T> =
 
     const payload = await response.json();
     const output = extractJson<T>(responseText(payload));
+    const tokenUsage = usageFromPayload(payload, promptInput, output);
     recordAgentRun({
       landingId: options.landingId,
       agentName: options.agent,
       model,
       inputHash,
       output,
-      status: "ok"
+      status: "ok",
+      tokenUsage
     });
     return output;
   } catch (error) {
     const output = options.fallback();
+    const inputTokens = estimateTokens(promptInput);
+    const outputTokens = estimateTokens(output);
     recordAgentRun({
       landingId: options.landingId,
       agentName: options.agent,
@@ -83,7 +102,12 @@ export const runJsonAgent = async <T>(options: RunAgentOptions<T>): Promise<T> =
       inputHash,
       output,
       status: "error",
-      error: error instanceof Error ? error.message : String(error)
+      error: error instanceof Error ? error.message : String(error),
+      tokenUsage: {
+        inputTokens,
+        outputTokens,
+        totalTokens: inputTokens + outputTokens
+      }
     });
     return output;
   }

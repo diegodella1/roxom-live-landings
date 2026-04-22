@@ -1,5 +1,5 @@
 import { env } from "./config";
-import { getLandingBySlug, listLandings, recordTelegramEvent, updateLandingStatus } from "./db";
+import { getLandingBySlug, listLandings, recordTelegramEvent, summarizeTokenUsageSince, updateLandingStatus } from "./db";
 import { publicFinalUrl, runLiveCycleForLanding, startLiveLanding } from "./pipeline";
 import { slugify } from "./slug";
 import type { LandingRecord } from "./types";
@@ -66,6 +66,11 @@ const findSlug = (value: string) => {
 
 const retryableStatuses = new Set(["blocked", "cancelled", "failed"]);
 
+const tokenUsageMessage = (startedAt: string) => {
+  const usage = summarizeTokenUsageSince(startedAt);
+  return `TOKENS | input=${usage.inputTokens} | output=${usage.outputTokens} | total=${usage.totalTokens}`;
+};
+
 const landingStatusMessage = (landing: LandingRecord) => {
   if (landing.status === "live") {
     return `FINAL URL READY | topic=${landing.topic} | final_url=${landing.finalUrl} | index_url=${env.landingsIndexUrl}`;
@@ -115,15 +120,18 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
 
     if (command === "/start_live") {
       if (!arg) throw new Error("Usage: /start_live <topic>");
+      const startedAt = new Date().toISOString();
       const existing = getLandingBySlug(slugify(arg));
       if (existing && !retryableStatuses.has(existing.status)) {
         await sendTelegramMessage(chatId, landingStatusMessage(existing));
+        await sendTelegramMessage(chatId, tokenUsageMessage(startedAt));
         return { ok: true, slug: existing.slug, existing: true };
       }
 
       await sendTelegramMessage(chatId, `PROJECT STARTED | topic=${arg} | stage=research${existing ? " | mode=retry" : ""}`);
       const landing = await startLiveLanding(arg);
       await sendTelegramMessage(chatId, landingStatusMessage(landing));
+      await sendTelegramMessage(chatId, tokenUsageMessage(startedAt));
       return { ok: true, slug: landing.slug };
     }
 
@@ -147,11 +155,13 @@ export const handleTelegramUpdate = async (update: TelegramUpdate) => {
 
     if (command === "/force_update") {
       if (!arg) throw new Error("Usage: /force_update <slug_or_topic>");
+      const startedAt = new Date().toISOString();
       const result = await runLiveCycleForLanding(findSlug(arg));
       await sendTelegramMessage(
         chatId,
         `FORCE UPDATE | slug=${result.landing.slug} | materiality=${result.monitor?.materiality ?? "SKIPPED"} | updated=${result.updated}`
       );
+      await sendTelegramMessage(chatId, tokenUsageMessage(startedAt));
       return { ok: true };
     }
 

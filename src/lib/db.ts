@@ -12,6 +12,12 @@ type DatabaseSync = {
   };
 };
 
+export type TokenUsageSummary = {
+  inputTokens: number;
+  outputTokens: number;
+  totalTokens: number;
+};
+
 let database: DatabaseSync | null = null;
 
 const dbPath = () => {
@@ -53,6 +59,9 @@ export const getDb = (): DatabaseSync => {
       output_json TEXT NOT NULL,
       status TEXT NOT NULL,
       error TEXT,
+      input_tokens INTEGER NOT NULL DEFAULT 0,
+      output_tokens INTEGER NOT NULL DEFAULT 0,
+      total_tokens INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL
     );
 
@@ -84,10 +93,21 @@ export const getDb = (): DatabaseSync => {
       created_at TEXT NOT NULL
     );
   `);
+  ensureColumn("agent_runs", "input_tokens", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("agent_runs", "output_tokens", "INTEGER NOT NULL DEFAULT 0");
+  ensureColumn("agent_runs", "total_tokens", "INTEGER NOT NULL DEFAULT 0");
   return database;
 };
 
 const now = () => new Date().toISOString();
+
+const ensureColumn = (table: string, column: string, definition: string) => {
+  const db = getDb();
+  const columns = db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+  if (!columns.some(existing => existing.name === column)) {
+    db.exec(`ALTER TABLE ${table} ADD COLUMN ${column} ${definition}`);
+  }
+};
 
 const rowToLanding = (row: any): LandingRecord => ({
   id: Number(row.id),
@@ -166,11 +186,38 @@ export const recordAgentRun = (input: {
   output: unknown;
   status: "ok" | "error";
   error?: string;
+  tokenUsage?: Partial<TokenUsageSummary>;
 }) => {
   getDb().prepare(`
-    INSERT INTO agent_runs (landing_id, agent_name, model, input_hash, output_json, status, error, created_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(input.landingId ?? null, input.agentName, input.model, input.inputHash, JSON.stringify(input.output), input.status, input.error ?? null, now());
+    INSERT INTO agent_runs (landing_id, agent_name, model, input_hash, output_json, status, error, input_tokens, output_tokens, total_tokens, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    input.landingId ?? null,
+    input.agentName,
+    input.model,
+    input.inputHash,
+    JSON.stringify(input.output),
+    input.status,
+    input.error ?? null,
+    input.tokenUsage?.inputTokens ?? 0,
+    input.tokenUsage?.outputTokens ?? 0,
+    input.tokenUsage?.totalTokens ?? 0,
+    now()
+  );
+};
+
+export const summarizeTokenUsageSince = (createdAtIso: string): TokenUsageSummary => {
+  const row = getDb()
+    .prepare(
+      "SELECT COALESCE(SUM(input_tokens), 0) AS inputTokens, COALESCE(SUM(output_tokens), 0) AS outputTokens, COALESCE(SUM(total_tokens), 0) AS totalTokens FROM agent_runs WHERE created_at >= ?"
+    )
+    .get(createdAtIso) as TokenUsageSummary;
+
+  return {
+    inputTokens: Number(row.inputTokens),
+    outputTokens: Number(row.outputTokens),
+    totalTokens: Number(row.totalTokens)
+  };
 };
 
 export const recordLiveCycle = (landingId: number, materiality: string, deltaHash: string, criticResult: unknown) => {

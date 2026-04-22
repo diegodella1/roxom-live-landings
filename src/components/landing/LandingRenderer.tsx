@@ -85,6 +85,15 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                   <span className={styles.eyebrow}>{section.eyebrow}</span>
                   <h2>{section.title}</h2>
                   <p>{section.body}</p>
+                  {section.sourceUrls?.length > 0 && (
+                    <div className={styles.sectionSources}>
+                      {section.sourceUrls.map((sourceUrl, sourceIndex) => (
+                        <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
+                          Source {sourceIndex + 1}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
                 <div className={styles.visualTile}>
                   <span>{section.visualHint}</span>

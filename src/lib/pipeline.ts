@@ -10,7 +10,7 @@ import {
 import { finalUrlForSlug } from "./config";
 import { slugify } from "./slug";
 import { runCritic } from "./agents/critic";
-import { runDesigner, runDesignerRevision } from "./agents/designer";
+import { defaultStitchDesignSpec, runDesigner, runDesignerRevision } from "./agents/designer";
 import { deltaHash, runLiveMonitor, runLiveUpdater } from "./agents/live";
 import { runResearch } from "./agents/research";
 import { runWriter, type WriterOutput } from "./agents/writer";
@@ -46,6 +46,7 @@ const safeBriefContent = (input: {
     ? [input.base.summary, ...input.writing.sections.map(section => section.body)]
     : input.writing.sections.map(section => section.body);
   const primarySource = input.base.sources[0];
+  const primarySourceUrl = primarySource?.url ?? finalUrlForSlug(input.slug);
 
   return {
     ...input.base,
@@ -66,7 +67,8 @@ const safeBriefContent = (input: {
         eyebrow: "Reported",
         title: "What is reported now",
         body: facts[0] ?? `The current brief tracks ${input.topic} using the listed sources.`,
-        visualHint: "data"
+        visualHint: "data",
+        sourceUrls: [primarySourceUrl]
       },
       {
         id: "source-context",
@@ -76,14 +78,16 @@ const safeBriefContent = (input: {
           input.base.sources.length > 0
             ? `This brief uses ${input.base.sources.map(source => source.outlet).join(", ")} as its source base and avoids claims outside that reporting.`
             : "This brief is waiting for stronger source coverage before adding more detail.",
-        visualHint: "quote"
+        visualHint: "quote",
+        sourceUrls: input.base.sources.length > 0 ? input.base.sources.map(source => source.url) : [primarySourceUrl]
       },
       {
         id: "watch-next",
         eyebrow: "Watch Next",
         title: "What could change",
         body: "The live monitor will update this page when new verified facts materially change the story.",
-        visualHint: "svg"
+        visualHint: "svg",
+        sourceUrls: [primarySourceUrl]
       }
     ],
     quotes: [],
@@ -92,9 +96,10 @@ const safeBriefContent = (input: {
         label: "Sources",
         value: String(input.base.sources.length),
         context: "Count of sources attached to this conservative live brief.",
-        sourceUrl: primarySource?.url ?? finalUrlForSlug(input.slug)
+        sourceUrl: primarySourceUrl
       }
     ],
+    designSpec: input.base.designSpec ?? defaultStitchDesignSpec(),
     updateHistory: [
       {
         timestampUtc: timestamp,

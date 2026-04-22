@@ -20,6 +20,11 @@ export type Source = {
   credibility: "tier1" | "tier2" | "unknown";
 };
 
+export type SourceBoundFact = {
+  claim: string;
+  sourceUrl: string;
+};
+
 export type VisualAsset = {
   type: "image" | "chart" | "map" | "svg";
   title: string;
@@ -34,6 +39,23 @@ export type StorySection = {
   title: string;
   body: string;
   visualHint: "image" | "chart" | "quote" | "data" | "svg";
+  sourceUrls: string[];
+};
+
+export type LandingDesignSpec = {
+  source: "stitch";
+  styleName: string;
+  layout: "visual-cover" | "split-brief" | "timeline" | "data-dashboard";
+  mood: string;
+  palette: {
+    background: string;
+    text: string;
+    accent: string;
+    muted: string;
+  };
+  heroTreatment: string;
+  motion: string;
+  notes: string[];
 };
 
 export type LandingContent = {
@@ -58,6 +80,7 @@ export type LandingContent = {
     context: string;
     sourceUrl: string;
   }>;
+  designSpec?: LandingDesignSpec;
   updateHistory: Array<{
     timestampUtc: string;
     materiality: Materiality;

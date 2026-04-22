@@ -6,10 +6,12 @@ Use a neutral factual editorial voice.
 Return JSON only, with no Markdown fence.
 `;
 
-export const miamiDesignSystem = `
-Design direction: high-energy live news interface.
-Style: high-energy 80s Miami broadcast news, retro-futurism plus glassmorphism.
-Palette: dark surfaces, hot pink urgent states, neon purple depth, bright cyan data, signal green only for success/market gains/live indicators.
+export const stitchDesignSystem = `
+Design direction: Stitch-first source-forward news landing.
+Style: clean editorial web experience, premium visual hierarchy, source transparency, modern motion, no brand-specific TV styling.
+Palette: deep neutral surfaces, bright but restrained accent color, high contrast text, muted metadata.
 Typography: Space Grotesk for headlines and labels, Work Sans for body.
-Layout: 12-column, broadcast safe areas, glass cards, neon diffusion, SVG/light effects, parallax-friendly sections.
+Layout: modular React-friendly screen regions: large visual hero, source rail, story frames, data/context block, update history.
+Motion: subtle scroll reveal, parallax only when it improves scanning, horizontal story frames only when there are multiple sections.
+Every visible factual content block must preserve source URLs from the research package.
 `;

@@ -18,13 +18,16 @@ export const runWriter = (research: ResearchOutput) =>
     system: editorialSystem,
     prompt: `
 Write structured landing content from this research package.
+Every factual sentence must be supported by the source-bound facts in Research.
+Every section must include sourceUrls from the source list.
 Every quote and data point must include sourceUrl from the source list.
+Do not invent quotes. If exact quotation text is not present in the research, return an empty quotes array.
 Return JSON:
 {
   "headline": string,
   "subheadline": string,
   "summary": string,
-  "sections": [{"id": string, "eyebrow": string, "title": string, "body": string, "visualHint": "image"|"chart"|"quote"|"data"|"svg"}],
+  "sections": [{"id": string, "eyebrow": string, "title": string, "body": string, "visualHint": "image"|"chart"|"quote"|"data"|"svg", "sourceUrls": string[]}],
   "quotes": [{"quote": string, "attribution": string, "sourceUrl": string}],
   "dataPoints": [{"label": string, "value": string, "context": string, "sourceUrl": string}]
 }
@@ -32,39 +35,36 @@ Research:
 ${JSON.stringify(research)}
 `,
     fallback: () => ({
-      headline: `${research.topic} Becomes The Signal Markets Cannot Ignore`,
-      subheadline: "A live news brief tracks verified facts, context, and material updates as the story develops.",
-      summary: research.facts.join(" "),
+      headline: `Live brief: ${research.topic}`,
+      subheadline: "A sourced live news brief tracks verified facts and material updates.",
+      summary: research.facts.map(fact => fact.claim).join(" "),
       sections: [
         {
           id: "live-brief",
           eyebrow: "Live Brief",
-          title: "The current signal",
-          body: research.facts[0] ?? `The live news pipeline is monitoring ${research.topic}.`,
-          visualHint: "svg"
+          title: "What is reported",
+          body: research.facts[0]?.claim ?? `The live news pipeline is monitoring ${research.topic}.`,
+          visualHint: "svg",
+          sourceUrls: [research.facts[0]?.sourceUrl ?? research.sources[0]?.url ?? "https://diegodella.ar/landings"]
         },
         {
-          id: "market-context",
+          id: "source-context",
           eyebrow: "Context",
-          title: "Why it matters",
-          body: research.facts[1] ?? "The story may affect markets, policy expectations, or public attention.",
-          visualHint: "data"
+          title: "Source context",
+          body: research.facts[1]?.claim ?? "The page will add context only when it is supported by attached sources.",
+          visualHint: "data",
+          sourceUrls: [research.facts[1]?.sourceUrl ?? research.sources[0]?.url ?? "https://diegodella.ar/landings"]
         },
         {
           id: "watch-next",
           eyebrow: "Watch Next",
           title: "What could change",
-          body: research.facts[2] ?? "The live monitor will update this page when new verified facts matter.",
-          visualHint: "quote"
+          body: "The live monitor will update this page when new verified facts matter.",
+          visualHint: "quote",
+          sourceUrls: [research.sources[0]?.url ?? "https://diegodella.ar/landings"]
         }
       ],
-      quotes: [
-        {
-          quote: "Every material update must be verified before it changes the public page.",
-          attribution: "News Landing Critic Gate",
-          sourceUrl: research.sources[0]?.url ?? "https://diegodella.ar/landings"
-        }
-      ],
+      quotes: [],
       dataPoints: [
         {
           label: "Sources",
