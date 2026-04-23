@@ -130,6 +130,21 @@
   font-weight: 800;
 }
 
+.agentButton em,
+.activeAgent em {
+  width: max-content;
+  padding: 3px 7px;
+  color: #060707;
+  font-family: var(--font-mono), monospace;
+  font-size: 9px;
+  font-style: normal;
+  font-weight: 900;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  background: var(--tertiary);
+  border-radius: 999px;
+}
+
 .agentButton small,
 .activeAgent small {
   color: rgba(255, 255, 255, 0.48);
@@ -169,6 +184,64 @@
 .actions {
   display: flex;
   gap: 10px;
+}
+
+.activeBadge,
+.roleBadge {
+  flex: 0 0 auto;
+  margin-top: 2px;
+  padding: 8px 10px;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.9px;
+  text-transform: uppercase;
+  border-radius: 999px;
+}
+
+.activeBadge {
+  color: #060707;
+  background: var(--signal-green);
+}
+
+.roleBadge {
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.descriptionBlock {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+  margin: 0 0 16px;
+  padding: 16px;
+  background: rgba(6, 7, 7, 0.48);
+  border: 1px solid rgba(116, 209, 255, 0.16);
+  border-radius: 4px;
+}
+
+.descriptionBlock span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--tertiary);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
+
+.descriptionBlock p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.72);
+  line-height: 1.55;
+}
+
+.descriptionBlock .secondaryButton {
+  margin-top: 0;
+  white-space: nowrap;
 }
 
 .primaryButton,
@@ -254,6 +327,10 @@
     flex-direction: column;
   }
 
+  .descriptionBlock {
+    grid-template-columns: 1fr;
+  }
+
   .actions {
     width: 100%;
   }
@@ -263,4 +340,3 @@
     flex: 1;
   }
 }
-

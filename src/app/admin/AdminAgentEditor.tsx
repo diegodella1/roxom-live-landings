@@ -4,10 +4,21 @@ import { useMemo, useState } from "react";
 import styles from "./admin.module.css";
 
 type EditableAgent = {
-  id: "research" | "writer" | "designer" | "critic";
+  id:
+    | "telegramGateway"
+    | "discover"
+    | "research"
+    | "writer"
+    | "designer"
+    | "critic"
+    | "publisher"
+    | "liveMonitor"
+    | "liveUpdater";
   label: string;
   role: string;
   filePath: string;
+  status: "active" | "role-only";
+  currentDescription: string;
   override: string;
 };
 
@@ -137,6 +148,7 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
               type="button"
             >
               <span>{agent.label}</span>
+              <em>{agent.status === "active" ? "Active prompt" : "Role only"}</em>
               <small>{agent.filePath}</small>
             </button>
           ))}
@@ -152,6 +164,9 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
                 <h2>{selectedAgent.label}</h2>
                 <span>{selectedAgent.role}</span>
               </div>
+              <strong className={selectedAgent.status === "active" ? styles.activeBadge : styles.roleBadge}>
+                {selectedAgent.status === "active" ? "Runtime prompt" : "Pipeline role"}
+              </strong>
               <div className={styles.actions}>
                 <button className={styles.secondaryButton} onClick={clear} type="button" disabled={state === "saving"}>
                   Clear
@@ -161,15 +176,30 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
                 </button>
               </div>
             </div>
+            <div className={styles.descriptionBlock}>
+              <div>
+                <span>Current Description</span>
+                <p>{selectedAgent.currentDescription}</p>
+              </div>
+              <button className={styles.secondaryButton} onClick={() => setDraft(selectedAgent.currentDescription)} type="button">
+                Edit From Current
+              </button>
+            </div>
             <textarea
               className={styles.textarea}
               value={draft}
               onChange={event => setDraft(event.target.value)}
-              placeholder={`Add runtime instructions for ${selectedAgent.label}. Example: Require the first three sections to be Lead, Why It Matters, and Who Is Involved.`}
+              placeholder={
+                selectedAgent.status === "active"
+                  ? `Add runtime instructions for ${selectedAgent.label}. Example: Require the first three sections to be Lead, Why It Matters, and Who Is Involved.`
+                  : `Save operator notes or desired behavior for ${selectedAgent.label}. This role is not injected into an LLM prompt yet.`
+              }
               spellCheck={false}
             />
             <div className={styles.status} data-state={state}>
-              {message || "Overrides are appended to the selected agent at runtime. Empty text means the code default is used."}
+              {message || (selectedAgent.status === "active"
+                ? "Overrides are appended to the selected agent at runtime. Empty text means the code default is used."
+                : "This role is loaded for visibility and editing, but current execution is deterministic code rather than an LLM prompt.")}
             </div>
           </>
         ) : (

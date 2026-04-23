@@ -1,40 +1,100 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { env } from "./config";
+import type { AgentName } from "./types";
 
-export type EditableAgentId = "research" | "writer" | "designer" | "critic";
+export type EditableAgentId = AgentName;
 
 export type EditableAgent = {
   id: EditableAgentId;
   label: string;
   role: string;
   filePath: string;
+  status: "active" | "role-only";
+  currentDescription: string;
   override: string;
 };
 
 const agentDefinitions: Array<Omit<EditableAgent, "override">> = [
   {
+    id: "telegramGateway",
+    label: "Telegram Gateway",
+    role: "Remote control, command parsing, status replies, and operational alerts.",
+    filePath: "src/lib/telegram.ts",
+    status: "role-only",
+    currentDescription:
+      "Receives Telegram commands, verifies allowed chats, starts discovered or requested landings, reports stage progress, sends final URLs, lists live landings, and can trigger live update cycles. This role does not currently call an LLM directly."
+  },
+  {
+    id: "discover",
+    label: "Discover Agent",
+    role: "Finds the best timely, source-rich topic when Diego asks the system to choose.",
+    filePath: "src/lib/agents/discover.ts",
+    status: "active",
+    currentDescription:
+      "Uses current web search to select one timely landing topic, preferring credible source coverage, urgency, strong visual potential, named actors, measurable deltas, and landing suitability. Returns 3-5 scored candidates plus the selected topic and rationale."
+  },
+  {
     id: "research",
     label: "Research Agent",
     role: "Finds current sources, source-bound facts, images, quotes, and data before writing.",
-    filePath: "src/lib/agents/research.ts"
+    filePath: "src/lib/agents/research.ts",
+    status: "active",
+    currentDescription:
+      "Builds the factual source package for a requested topic. It gathers credible current sources, source-bound facts, image candidates, quotes, and data points that downstream writing and design agents must stay faithful to."
   },
   {
     id: "writer",
     label: "Writer Agent",
     role: "Creates headline, summary, sections, quotes, and data points from the research package.",
-    filePath: "src/lib/agents/writer.ts"
+    filePath: "src/lib/agents/writer.ts",
+    status: "active",
+    currentDescription:
+      "Turns the research package into a structured editorial brief: headline, subheadline, summary, sections, quotes, data points, update history, and source usage. It is responsible for clear top-line news structure and source-grounded copy."
   },
   {
     id: "designer",
     label: "Designer Agent",
     role: "Chooses layout, visual hierarchy, design spec, visuals, and final LandingContent structure.",
-    filePath: "src/lib/agents/designer.ts"
+    filePath: "src/lib/agents/designer.ts",
+    status: "active",
+    currentDescription:
+      "Converts the written brief and research package into final LandingContent. It owns layout choice, visual hierarchy, hero treatment, visual relevance, section composition, source footer structure, and design spec. It also performs critic-requested repair revisions."
   },
   {
     id: "critic",
     label: "Critic Agent",
     role: "Reviews safety, sourcing, section quality, visual relevance, and publication readiness.",
-    filePath: "src/lib/agents/critic.ts"
+    filePath: "src/lib/agents/critic.ts",
+    status: "active",
+    currentDescription:
+      "Reviews the generated landing before publication. It checks source support, factual caution, banned or unsafe claims, section quality, top-line landing completeness, visual relevance, and whether the page should be approved, repaired, or blocked."
+  },
+  {
+    id: "publisher",
+    label: "Publisher",
+    role: "Persists approved content and exposes the final public URL.",
+    filePath: "src/lib/pipeline.ts",
+    status: "role-only",
+    currentDescription:
+      "Saves approved landing content, marks the landing live, keeps blocked or failed pages unpublished, and exposes the final URL through the landings route. This role is deterministic pipeline code and does not currently call an LLM directly."
+  },
+  {
+    id: "liveMonitor",
+    label: "Live Monitor",
+    role: "Checks live pages for material verified changes on later cycles.",
+    filePath: "src/lib/agents/live.ts",
+    status: "active",
+    currentDescription:
+      "Uses current web search to monitor an already-live landing for net-new verified updates. It classifies materiality as no change, minor, important, critical, or blocker, and returns a sourced delta summary."
+  },
+  {
+    id: "liveUpdater",
+    label: "Live Updater",
+    role: "Applies verified live deltas while preserving editorial and visual quality.",
+    filePath: "src/lib/agents/live.ts",
+    status: "active",
+    currentDescription:
+      "Applies an important or critical monitor delta to the full LandingContent JSON. It preserves structure, source credits, article depth, relevant visuals, and the complete source list before the critic reviews the update."
   }
 ];
 

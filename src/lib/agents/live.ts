@@ -1,11 +1,13 @@
 import { hashValue } from "../hash";
 import { runJsonAgent } from "../openai";
 import type { LandingContent, LiveMonitorResult } from "../types";
+import { getAgentOverride } from "../admin-agents";
 import { editorialSystem } from "./prompts";
 import { fallbackNoMaterialChange } from "./fallbacks";
 
-export const runLiveMonitor = (content: LandingContent, landingId: number) =>
-  runJsonAgent<LiveMonitorResult>({
+export const runLiveMonitor = async (content: LandingContent, landingId: number) => {
+  const adminOverride = await getAgentOverride("liveMonitor");
+  return runJsonAgent<LiveMonitorResult>({
     agent: "liveMonitor",
     landingId,
     system: editorialSystem,
@@ -22,12 +24,15 @@ Return JSON:
 Only IMPORTANT or CRITICAL should update the public page.
 Current landing:
 ${JSON.stringify(content)}
+${adminOverride}
 `,
     fallback: fallbackNoMaterialChange
   });
+};
 
-export const runLiveUpdater = (content: LandingContent, monitor: LiveMonitorResult, landingId: number) =>
-  runJsonAgent<LandingContent>({
+export const runLiveUpdater = async (content: LandingContent, monitor: LiveMonitorResult, landingId: number) => {
+  const adminOverride = await getAgentOverride("liveUpdater");
+  return runJsonAgent<LandingContent>({
     agent: "liveUpdater",
     landingId,
     system: editorialSystem,
@@ -45,6 +50,7 @@ Current landing:
 ${JSON.stringify(content)}
 Monitor result:
 ${JSON.stringify(monitor)}
+${adminOverride}
 `,
     fallback: () => ({
       ...content,
@@ -60,5 +66,6 @@ ${JSON.stringify(monitor)}
       ]
     })
   });
+};
 
 export const deltaHash = (monitor: LiveMonitorResult) => hashValue(monitor);

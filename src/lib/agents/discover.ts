@@ -1,4 +1,5 @@
 import { runJsonAgent } from "../openai";
+import { getAgentOverride } from "../admin-agents";
 import { editorialSystem } from "./prompts";
 
 export type DiscoveryCandidate = {
@@ -16,8 +17,9 @@ export type DiscoveryOutput = {
   candidates: DiscoveryCandidate[];
 };
 
-export const discoverLiveTopic = (hint?: string) =>
-  runJsonAgent<DiscoveryOutput>({
+export const discoverLiveTopic = async (hint?: string) => {
+  const adminOverride = await getAgentOverride("discover");
+  return runJsonAgent<DiscoveryOutput>({
     agent: "discover",
     system: editorialSystem,
     useWebSearch: true,
@@ -52,6 +54,7 @@ Return JSON:
 }
 
 Return 3-5 candidates. Scores must be 0-100 and grounded in source quality, urgency, landing suitability, and visual potential.
+${adminOverride}
 `,
     fallback: () => ({
       selectedTopic: hint?.trim() || "global markets live update",
@@ -68,3 +71,4 @@ Return 3-5 candidates. Scores must be 0-100 and grounded in source quality, urge
       ]
     })
   });
+};
