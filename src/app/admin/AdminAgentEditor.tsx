@@ -15,6 +15,13 @@ type ApiState = "idle" | "loading" | "saving" | "error" | "saved";
 
 const storageKey = "news-live-admin-token";
 
+const adminApiPath = () => {
+  if (typeof window === "undefined") return "/api/admin/agents";
+  return window.location.pathname.startsWith("/landings/")
+    ? "/landings/api/admin/agents"
+    : "/api/admin/agents";
+};
+
 export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken: string; initialAgents: EditableAgent[] }) {
   const [token, setToken] = useState(() => (
     initialToken || (typeof window !== "undefined" ? window.localStorage.getItem(storageKey) ?? "" : "")
@@ -38,7 +45,7 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
   const loadAgents = async () => {
     setState("loading");
     setMessage("");
-    const response = await fetch("/api/admin/agents", { headers: token ? { "x-admin-token": token } : undefined });
+    const response = await fetch(adminApiPath(), { headers: token ? { "x-admin-token": token } : undefined });
     const payload = await response.json();
     if (!response.ok) {
       setState("error");
@@ -66,7 +73,7 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
     if (!selectedAgent) return;
     setState("saving");
     setMessage("");
-    const response = await fetch("/api/admin/agents", {
+    const response = await fetch(adminApiPath(), {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({ agentId: selectedAgent.id, override: draft })
@@ -88,7 +95,7 @@ export function AdminAgentEditor({ initialToken, initialAgents }: { initialToken
     setDraft("");
     if (!selectedAgent) return;
     setState("saving");
-    const response = await fetch("/api/admin/agents", {
+    const response = await fetch(adminApiPath(), {
       method: "POST",
       headers: authHeaders,
       body: JSON.stringify({ agentId: selectedAgent.id, override: "" })
