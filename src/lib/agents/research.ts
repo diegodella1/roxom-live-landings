@@ -1,7 +1,7 @@
 import { runJsonAgent } from "../openai";
 import type { ImageCandidate, Source, SourceBoundFact } from "../types";
-import { discoverSourceImages, discoverWikimediaImages } from "../source-images";
-import { editorialSystem } from "./prompts";
+import { discoverSourceImages, discoverWikimediaImages, isLikelyRenderableImageUrl } from "../source-images";
+import { getEditorialSystem } from "./prompts";
 import { fallbackSources } from "./fallbacks";
 import { getAgentOverride } from "../admin-agents";
 
@@ -16,7 +16,10 @@ export type ResearchOutput = {
 const normalizeResearch = async (output: ResearchOutput): Promise<ResearchOutput> => {
   const fallbackSourceUrl = output.sources[0]?.url ?? "https://diegodella.ar/landings";
   const generatedImageCandidates = (output.imageCandidates ?? []).filter(
-    image => image.url?.startsWith("http") && output.sources.some(source => source.url === image.sourceUrl)
+    image =>
+      image.url?.startsWith("http")
+      && isLikelyRenderableImageUrl(image.url)
+      && output.sources.some(source => source.url === image.sourceUrl)
   );
   const discoveredImageCandidates = [
     ...await discoverSourceImages(output.sources),
@@ -43,6 +46,7 @@ const normalizeResearch = async (output: ResearchOutput): Promise<ResearchOutput
 
 export const runResearch = async (topic: string) => {
   const adminOverride = await getAgentOverride("research");
+  const editorialSystem = await getEditorialSystem();
   return normalizeResearch(await runJsonAgent<ResearchOutput>({
     agent: "research",
     system: editorialSystem,
@@ -68,6 +72,7 @@ Topic-specific reporting requirements:
 Search specifically for exact quotes from relevant parties. Include only exact quotes that appear in source material; otherwise gather paraphrased reactions as source-bound facts.
 Image collection is mandatory when available. Collect photographic image candidates only when the image URL is directly associated with a returned source, such as a source article OpenGraph image, press image, company/government media image, or media kit image. Prefer large landscape images. Do not use icons, logos, avatars, trackers, base64 data URLs, SVGs, or unrelated stock images.
 For every imageCandidate, explain why it is relevant to the story. Use relevance "direct" only for images from an article/source about the exact story, "contextual" for a known person/place/institution/entity in the story, and "fallback" only when no direct/contextual image exists.
+When the reporting supports it, aim to return 6-10 relevant imageCandidates so the landing can stay visually alive beyond the hero.
 Return JSON:
 {
   "topic": string,

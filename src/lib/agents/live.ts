@@ -2,11 +2,12 @@ import { hashValue } from "../hash";
 import { runJsonAgent } from "../openai";
 import type { LandingContent, LiveMonitorResult } from "../types";
 import { getAgentOverride } from "../admin-agents";
-import { editorialSystem } from "./prompts";
+import { getEditorialSystem } from "./prompts";
 import { fallbackNoMaterialChange } from "./fallbacks";
 
 export const runLiveMonitor = async (content: LandingContent, landingId: number) => {
   const adminOverride = await getAgentOverride("liveMonitor");
+  const editorialSystem = await getEditorialSystem();
   return runJsonAgent<LiveMonitorResult>({
     agent: "liveMonitor",
     landingId,
@@ -40,6 +41,7 @@ ${adminOverride}
 
 export const runLiveUpdater = async (content: LandingContent, monitor: LiveMonitorResult, landingId: number) => {
   const adminOverride = await getAgentOverride("liveUpdater");
+  const editorialSystem = await getEditorialSystem();
   return runJsonAgent<LandingContent>({
     agent: "liveUpdater",
     landingId,

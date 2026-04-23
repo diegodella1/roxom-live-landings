@@ -7,14 +7,18 @@ import styles from "./landing.module.css";
 
 const imageProxyUrl = (url: string) => `/landings/api/source-image?url=${encodeURIComponent(url)}`;
 
+const normalizeVisualKey = (visual: Pick<VisualAsset, "url" | "title" | "credit"> & { url?: string }) => {
+  const normalizedUrl = String(visual.url ?? "")
+    .replace(/^https?:\/\/[^/]+\/landings\/api\/source-image\?url=/, "")
+    .replace(/^https?:\/\/[^/]+\/api\/source-image\?url=/, "");
+  const safeTitle = String(visual.title ?? "").trim().toLowerCase();
+  const safeCredit = String(visual.credit ?? "").trim().toLowerCase();
+  return `${decodeURIComponent(normalizedUrl)}|${safeTitle}|${safeCredit}`;
+};
+
 const sourceLabel = (content: LandingContent, sourceUrl: string) => {
   const source = content.sources.find(item => item.url === sourceUrl);
   return source ? source.outlet : "Source";
-};
-
-const sectionDateLabel = (section: StorySection, index: number) => {
-  const match = section.body.match(/\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+\d{1,2}\b|\b\d{4}\b/i);
-  return match?.[0] ?? `Step ${index + 1}`;
 };
 
 const trimSentenceExcerpt = (text: string, maxLength = 220) => {
@@ -23,32 +27,6 @@ const trimSentenceExcerpt = (text: string, maxLength = 220) => {
   const sentences = normalized.match(/[^.!?]+[.!?]+/g);
   const excerpt = sentences?.slice(0, 2).join(" ").trim() ?? normalized;
   return excerpt.length > maxLength ? `${excerpt.slice(0, maxLength - 3).trim()}...` : excerpt;
-};
-
-const sourceNamesForSection = (content: LandingContent, section: StorySection) => {
-  const names = section.sourceUrls
-    .map(sourceUrl => sourceLabel(content, sourceUrl))
-    .filter(Boolean);
-  return [...new Set(names)];
-};
-
-const contextHeading = (content: LandingContent) => {
-  switch (content.designSpec?.layout) {
-    case "market-brief":
-    case "data-dashboard":
-      return "Signals & Data";
-    case "person-profile":
-      return "Profile Timeline";
-    case "competition-brief":
-      return "Status & Stakes";
-    case "election-brief":
-      return "Results & Outcomes";
-    case "event-brief":
-    case "timeline":
-      return "Facts Timeline";
-    default:
-      return "Key Facts";
-  }
 };
 
 const termsFor = (text: string) => text.toLowerCase().split(/\W+/).filter(term => term.length > 3);
@@ -61,17 +39,47 @@ const visualMatchesSection = (visual: VisualAsset | undefined, section: StorySec
   return visualText.some(term => sectionText.has(term));
 };
 
-const chooseSectionImage = (
-  images: Array<VisualAsset & { url: string }>,
-  section: StorySection,
-  content: LandingContent,
-  index: number
-) => {
-  if (images.length === 0) return undefined;
-  return images.find(image => visualMatchesSection(image, section, content)) ?? (section.visualHint === "image" ? images[index % images.length] : undefined);
+
+const extractPointNumbers = (value: string) => {
+  const matches = Array.from(value.matchAll(/(\d[\d.,]*)/g));
+  return matches
+    .map(match => Number(match[1].replace(/,/g, "")))
+    .filter(number => Number.isFinite(number));
 };
 
-function SectionMedia({ section, visual, index }: { section: StorySection; visual?: VisualAsset; index: number }) {
+const pointMagnitude = (value: string) => {
+  const numbers = extractPointNumbers(value);
+  if (numbers.length === 0) return 0;
+  return numbers.length > 1 ? numbers.reduce((sum, number) => sum + number, 0) : numbers[0];
+};
+
+const chartTone = (index: number) => (["var(--primary)", "var(--tertiary)", "var(--secondary)", "#ffd36f"])[index % 4];
+
+const tickerIcon = (label: string) => {
+  const normalized = label.toLowerCase();
+  if (normalized.includes("critical") || normalized.includes("blocker")) return "▲";
+  if (normalized.includes("important")) return "■";
+  if (normalized.includes("minor")) return "●";
+  return "◆";
+};
+
+const buildSectionChartPoints = (content: LandingContent, index: number) => {
+  if (content.dataPoints.length === 0) return [];
+  const rotated = content.dataPoints.map((_, offset) => content.dataPoints[(index + offset) % content.dataPoints.length]);
+  return rotated.slice(0, Math.min(3, rotated.length));
+};
+
+function SectionMedia({
+  section,
+  visual,
+  index,
+  content
+}: {
+  section: StorySection;
+  visual?: VisualAsset;
+  index: number;
+  content: LandingContent;
+}) {
   if (visual?.type === "image" && visual.url) {
     return (
       <figure className={styles.articleImageBlock}>
@@ -82,13 +90,43 @@ function SectionMedia({ section, visual, index }: { section: StorySection; visua
   }
 
   if (section.visualHint === "chart" || section.visualHint === "data") {
-    const bars = [64, 42, 88, 58, 76].map(value => Math.max(16, Math.min(94, value + index * 2)));
+    const points = buildSectionChartPoints(content, index);
+    const maxMagnitude = Math.max(...points.map(point => pointMagnitude(point.value)), 1);
     return (
       <div className={styles.chartCard} aria-label="Data visual">
-        <div className={styles.chartBars}>
-          {bars.map((height, barIndex) => (
-            <span style={{ height: `${height}%` }} key={`${height}-${barIndex}`} />
-          ))}
+        <div className={styles.chartCardHeader}>
+          <strong>{section.title}</strong>
+          <span>Sourced comparison</span>
+        </div>
+        <div className={styles.chartRows}>
+          {points.map((point, pointIndex) => {
+            const magnitude = pointMagnitude(point.value);
+            return (
+              <a
+                href={point.sourceUrl}
+                target="_blank"
+                rel="noreferrer"
+                key={`${point.label}-${point.value}`}
+                className={styles.chartRow}
+              >
+                <div className={styles.chartRowCopy}>
+                  <strong>{point.label}</strong>
+                  <small>{point.context}</small>
+                </div>
+                <div className={styles.chartTrack}>
+                  <span
+                    className={styles.chartFill}
+                    style={{
+                      width: `${Math.max(24, Math.round((magnitude / maxMagnitude) * 100))}%`,
+                      background: `linear-gradient(90deg, ${chartTone(pointIndex)}, rgba(255,255,255,0.18))`
+                    }}
+                  >
+                    {point.value}
+                  </span>
+                </div>
+              </a>
+            );
+          })}
         </div>
       </div>
     );
@@ -108,16 +146,45 @@ function SectionMedia({ section, visual, index }: { section: StorySection; visua
 }
 
 export function LandingRenderer({ content }: { content: LandingContent }) {
-  const imageVisuals = content.visuals.filter((visual): visual is VisualAsset & { url: string } => (
-    visual.type === "image" && Boolean(visual.url)
-  ));
+  const imageVisuals = content.visuals
+    .filter((visual): visual is VisualAsset & { url: string } => (
+      visual.type === "image" && Boolean(visual.url)
+    ))
+    .filter((visual, index, all) => index === all.findIndex(item => normalizeVisualKey(item) === normalizeVisualKey(visual)));
   const heroImage = imageVisuals[0];
   const articleImages = imageVisuals.slice(1);
   const heroTags = [content.designSpec?.layout?.replace("-", " "), content.topic].filter(Boolean).slice(0, 2);
-  const highlightCards = content.dataPoints.slice(0, 3);
   const storyMapSections = content.sections.slice(0, 5);
   const visibleUpdates = content.updateHistory.filter(update => !/fallback|repair|critic/i.test(update.summary));
   const reactionSources = content.sources.slice(0, 3);
+  const explainerPoints = content.dataPoints.slice(0, 5);
+  const metricCards = content.dataPoints.slice(0, 4);
+  const availableSectionImages = [...articleImages];
+  const sectionImagePlan = content.sections.map((section, index) => {
+    const shouldPrioritizeImage = index === 0 || section.visualHint === "image" || index % 2 === 1;
+    const matchedIndex = availableSectionImages.findIndex(image => visualMatchesSection(image, section, content));
+    const fallbackIndex = shouldPrioritizeImage && availableSectionImages.length > 0 ? 0 : -1;
+    const chosenIndex = matchedIndex >= 0 ? matchedIndex : fallbackIndex;
+    const visual = chosenIndex >= 0 ? availableSectionImages.splice(chosenIndex, 1)[0] : undefined;
+    const isLeadSection = index === 0;
+    const shouldShowMedia = Boolean(visual);
+    return { section, index, visual, isLeadSection, shouldShowMedia };
+  });
+  const usedArticleImageUrls = new Set(
+    [] as string[]
+  );
+  sectionImagePlan
+    .filter(item => item.shouldShowMedia && item.visual?.url)
+    .forEach(item => usedArticleImageUrls.add(item.visual!.url));
+  const galleryVisuals = imageVisuals
+    .slice(1)
+    .filter(visual => !usedArticleImageUrls.has(visual.url))
+    .slice(0, 6);
+  const dataMagnitudes = explainerPoints.map(point => ({
+    ...point,
+    magnitude: pointMagnitude(point.value)
+  }));
+  const maxDataMagnitude = Math.max(...dataMagnitudes.map(point => point.magnitude), 1);
   const liveFeedItems = (visibleUpdates.length > 0
     ? visibleUpdates.slice(0, 4).map(update => ({
         label: update.materiality,
@@ -131,15 +198,40 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
         body: trimSentenceExcerpt(source.title, 140),
         href: source.url
       })));
+  const tickerItems = (liveFeedItems.length > 0 ? liveFeedItems : content.sources.slice(0, 3).map(source => ({
+    label: source.outlet,
+    body: source.title,
+    href: source.url
+  }))).slice(0, 4);
+  const navSections = storyMapSections.slice(0, 4);
+  const railSections = content.sections.slice(0, 8);
+  const leadMetric = metricCards[0];
+  const secondaryMetric = metricCards[1];
 
   return (
     <main className={styles.shell} data-layout={content.designSpec?.layout ?? "visual-cover"}>
+      <div className={styles.topTicker} aria-label="Live alert ticker">
+        <div className={styles.topTickerTrack}>
+          {[...tickerItems, ...tickerItems].map((item, index) => (
+            <a href={item.href} target="_blank" rel="noreferrer" key={`${item.label}-${index}`} className={styles.topTickerItem}>
+              <span>{tickerIcon(item.label)}</span>
+              <strong>{item.label}</strong>
+              <p>{item.body}</p>
+            </a>
+          ))}
+        </div>
+      </div>
+
       <nav className={styles.navbar} aria-label="Landing navigation">
-        <span className={styles.brand}>Live News</span>
+        <span className={styles.brand}>{String(content.topic ?? "Live News").slice(0, 36)}</span>
         <div className={styles.navLinks}>
-          {storyMapSections.map(section => (
+          {navSections.map(section => (
             <a href={`#${section.id}`} key={section.id}>{section.eyebrow}</a>
           ))}
+        </div>
+        <div className={styles.navActions} aria-label="Story utilities">
+          <span>Live</span>
+          <span>{new Date(content.lastUpdatedUtc).toLocaleDateString()}</span>
         </div>
       </nav>
       <div className={styles.commandDeck}>
@@ -149,13 +241,17 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
             <span>Story navigation</span>
           </div>
           <nav className={styles.commandRailNav}>
-            {content.sections.slice(0, 8).map(section => (
+            {railSections.map(section => (
               <a href={`#${section.id}`} key={section.id}>
                 <span>{section.eyebrow}</span>
                 <strong>{section.title}</strong>
               </a>
             ))}
           </nav>
+          <div className={styles.commandRailFooter}>
+            <a href="#sources">Audit sources</a>
+            <a href="#lead">Jump to lead</a>
+          </div>
         </aside>
 
         <div className={styles.canvas}>
@@ -182,6 +278,22 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                   <p className={styles.heroSubheadline}>{content.subheadline}</p>
                   {heroImage && <p className={styles.heroCredit}>Image: {heroImage.credit}</p>}
                 </motion.div>
+                <div className={styles.heroMetricStack}>
+                  {leadMetric && (
+                    <a href={leadMetric.sourceUrl} target="_blank" rel="noreferrer" className={styles.heroMetricCard}>
+                      <span>{leadMetric.label}</span>
+                      <strong>{leadMetric.value}</strong>
+                      <small>{sourceLabel(content, leadMetric.sourceUrl)}</small>
+                    </a>
+                  )}
+                  {secondaryMetric && (
+                    <a href={secondaryMetric.sourceUrl} target="_blank" rel="noreferrer" className={`${styles.heroMetricCard} ${styles.heroMetricCardAlt}`}>
+                      <span>{secondaryMetric.label}</span>
+                      <strong>{secondaryMetric.value}</strong>
+                      <small>{sourceLabel(content, secondaryMetric.sourceUrl)}</small>
+                    </a>
+                  )}
+                </div>
               </div>
 
               <aside className={styles.liveFeed} aria-label="Live intelligence">
@@ -209,15 +321,6 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                   <span>Top Line</span>
                   <p>{content.summary}</p>
                 </div>
-                <div className={styles.topLineStats} aria-label="Landing status">
-                  {highlightCards.map(point => (
-                    <a key={`${point.label}-${point.value}`} href={point.sourceUrl} target="_blank" rel="noreferrer">
-                      <span>{point.label}</span>
-                      <strong>{point.value}</strong>
-                      <small>{point.context}</small>
-                    </a>
-                  ))}
-                </div>
                 <nav className={styles.storyMap} aria-label="Story sections">
                   {storyMapSections.map((section, index) => (
                     <a href={`#${section.id}`} key={section.id}>
@@ -237,13 +340,10 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
             <i aria-hidden="true" />
           </div>
           <article className={styles.articleBody}>
-            <p className={styles.lede}>{content.summary}</p>
-            {content.sections.map((section, index) => {
-              const visual = chooseSectionImage(articleImages, section, content, index);
-              const shouldShowMedia = Boolean(visual) && (index === 1 || index === 3 || section.visualHint === "image");
+            {sectionImagePlan.map(({ section, index, visual, isLeadSection, shouldShowMedia }) => {
               return (
                 <motion.section
-                  className={styles.articleChunk}
+                  className={`${styles.articleChunk} ${isLeadSection ? styles.articleLeadChunk : ""}`}
                   id={section.id}
                   key={section.id}
                   initial={{ opacity: 0, y: 18 }}
@@ -253,7 +353,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                 >
                   <span className={styles.articleEyebrow}>{section.eyebrow}</span>
                   <h2>{section.title}</h2>
-                  <p>{section.body}</p>
+                  <p className={isLeadSection ? styles.articleLeadBody : undefined}>{section.body}</p>
                   <div className={styles.sourceTags} aria-label="Sources for this section">
                     {section.sourceUrls.slice(0, 2).map((sourceUrl, sourceIndex) => (
                       <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
@@ -264,32 +364,14 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                       <span className={styles.moreSources}>+{section.sourceUrls.length - 2} more sources</span>
                     )}
                   </div>
-                  {shouldShowMedia && <SectionMedia section={section} visual={visual} index={index} />}
+                  {shouldShowMedia && <SectionMedia section={section} visual={visual} index={index} content={content} />}
+                  {!shouldShowMedia && (section.visualHint === "chart" || section.visualHint === "data" || section.visualHint === "map") && (
+                    <SectionMedia section={section} index={index} content={content} />
+                  )}
                 </motion.section>
               );
             })}
           </article>
-            </div>
-          </section>
-
-          <section className={styles.contextSection} aria-label="Timeline">
-            <div className={styles.container}>
-          <div className={styles.sectionLabel}>
-            <span>{contextHeading(content)}</span>
-            <i aria-hidden="true" />
-          </div>
-          <ol className={styles.timeline}>
-            {content.sections.slice(0, 8).map((section, index) => (
-              <li className={styles.timelineItem} key={section.id}>
-                <span className={styles.timelineDate}>{sectionDateLabel(section, index)}</span>
-                <span className={styles.timelineDot} aria-hidden="true" />
-                <div>
-                  <p>{trimSentenceExcerpt(section.body, 180)}</p>
-                  <small>{sourceNamesForSection(content, section).slice(0, 2).join(" · ")}</small>
-                </div>
-              </li>
-            ))}
-          </ol>
             </div>
           </section>
 
@@ -337,12 +419,21 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
               <p>Data from the story</p>
               <small>{content.dataPoints.slice(0, 3).map(point => point.label).join(" · ")}</small>
               <div className={styles.sourceChart} aria-label="Chart based on sourced data points">
-                {content.dataPoints.slice(0, 5).map(point => (
-                  <span
-                    key={`${point.label}-${point.value}`}
-                    title={`${point.label}: ${point.value}`}
-                    style={{ height: `${Math.min(96, Math.max(20, point.value.length * 6))}%` }}
-                  />
+                {dataMagnitudes.map((point, index) => (
+                  <a href={point.sourceUrl} target="_blank" rel="noreferrer" key={`${point.label}-${point.value}`} className={styles.sourceChartRow}>
+                    <div>
+                      <strong>{point.label}</strong>
+                      <small>{point.context}</small>
+                    </div>
+                    <span
+                      style={{
+                        width: `${Math.max(26, Math.round((point.magnitude / maxDataMagnitude) * 100))}%`,
+                        background: `linear-gradient(90deg, ${chartTone(index)}, rgba(255,255,255,0.18))`
+                      }}
+                    >
+                      {point.value}
+                    </span>
+                  </a>
                 ))}
               </div>
             </div>
@@ -371,15 +462,15 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
             </div>
           </section>
 
-          {imageVisuals.length > 1 && (
-            <section className={styles.gallerySection} aria-label="Image gallery">
+      {galleryVisuals.length >= 2 && (
+        <section className={styles.gallerySection} aria-label="Image gallery">
               <div className={styles.containerWide}>
             <div className={styles.sectionLabel}>
               <span>Images</span>
               <i aria-hidden="true" />
             </div>
-            <div className={styles.galleryGrid}>
-              {imageVisuals.slice(0, 8).map(visual => (
+              <div className={styles.galleryGrid}>
+              {galleryVisuals.map(visual => (
                 <figure className={styles.galleryItem} key={visual.url}>
                   <img src={imageProxyUrl(visual.url)} alt={visual.alt} loading="lazy" />
                   <figcaption>{visual.credit}</figcaption>
@@ -408,7 +499,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
             </section>
           )}
 
-          <section className={styles.sourcesSection} aria-label="Sources">
+          <section className={styles.sourcesSection} aria-label="Sources" id="sources">
             <div className={styles.containerWide}>
           <div className={styles.sectionLabel}>
             <span>Sources</span>
@@ -445,6 +536,14 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
           <strong>Live News Landings</strong> · Updated {new Date(content.lastUpdatedUtc).toLocaleString()}
         </p>
       </footer>
+
+      <nav className={styles.mobileDock} aria-label="Mobile story navigation">
+        {navSections.map(section => (
+          <a href={`#${section.id}`} key={`mobile-${section.id}`}>
+            <span>{section.eyebrow}</span>
+          </a>
+        ))}
+      </nav>
     </main>
   );
 }

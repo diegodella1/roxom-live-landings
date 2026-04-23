@@ -53,7 +53,7 @@ export default function LandingsIndexPage() {
         <div>
           <p className={styles.kicker}>Live News Landing Pipeline</p>
           <h1>Published stories, token spend, and live output.</h1>
-          <span>Send a topic in Telegram. The system researches, writes, designs, reviews, and publishes here.</span>
+          <span>Send a topic from Telegram or mention the bot in Slack. The system researches, writes, designs, reviews, and publishes here.</span>
         </div>
         <div className={styles.metrics} aria-label="Pipeline metrics">
           <div>
@@ -98,7 +98,7 @@ export default function LandingsIndexPage() {
               ? `Live agent checks for material updates every ${intervalMinutes} minutes.`
               : "Automatic update checks are currently disabled."}
           </h2>
-          <span>Telegram only receives a message when an update is actually published.</span>
+          <span>Operator channels only receive a message when an update is actually published.</span>
           <AutoRefreshToggle initialEnabled={autoRefreshEnabled} />
         </div>
         <div className={styles.monitorStats}>
@@ -144,7 +144,7 @@ export default function LandingsIndexPage() {
         {liveLandings.length === 0 ? (
           <div className={styles.empty}>
             <h2>No landings yet</h2>
-            <p>Send a topic from Telegram to create the first live landing.</p>
+            <p>Send a topic from Telegram or Slack to create the first live landing.</p>
           </div>
         ) : (
           liveLandings.map(landing => {

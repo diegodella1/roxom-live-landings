@@ -1,7 +1,7 @@
 import type { LandingContent, StorySection } from "./types";
 
-const minimumSectionCount = 9;
-const minimumSectionWords = 80;
+const minimumSectionCount = 6;
+const minimumSectionWords = 55;
 
 const sectionBlueprints: Array<Pick<StorySection, "id" | "eyebrow" | "title" | "visualHint">> = [
   { id: "lead", eyebrow: "Lead", title: "What is known now", visualHint: "image" },
@@ -36,12 +36,7 @@ const cleanReaderFacingCopy = (text: string) => text
 const expandBody = (content: LandingContent, body: string, sectionTitle: string) => {
   const safeBody = cleanReaderFacingCopy(body.trim() || content.summary || `This section tracks ${content.topic}.`);
   if (wordCount(safeBody) >= minimumSectionWords) return safeBody;
-
-  const context = sectionTitle.toLowerCase().includes("next")
-    ? ` The key question now is what new decision, strike, funding move, or official statement would materially change the story next.`
-    : ` This section should stay focused on ${sectionTitle.toLowerCase()} and connect the current development back to the main turn in the story.`;
-
-  return `${safeBody}${context}`.trim();
+  return safeBody;
 };
 
 export const enforceTopLineLanding = (content: LandingContent): LandingContent => {
@@ -69,38 +64,9 @@ export const enforceTopLineLanding = (content: LandingContent): LandingContent =
     });
   }
 
-  const primarySourceUrl = content.sources[0]?.url ?? "https://diegodella.ar/landings";
-  const existingLabels = new Set(content.dataPoints.map(point => point.label.toLowerCase()));
-  const dataPoints = [...content.dataPoints];
-  const requiredData = [
-    {
-      label: "Sources",
-      value: String(content.sources.length),
-      context: "Source count attached to this landing.",
-      sourceUrl: primarySourceUrl
-    },
-    {
-      label: "Sections",
-      value: String(normalizedSections.length),
-      context: "Reader-facing story sections in this landing.",
-      sourceUrl: primarySourceUrl
-    },
-    {
-      label: "Update loop",
-      value: "30 min",
-      context: "Live monitor cadence for material changes.",
-      sourceUrl: primarySourceUrl
-    }
-  ];
-
-  for (const point of requiredData) {
-    if (dataPoints.length >= 3) break;
-    if (!existingLabels.has(point.label.toLowerCase())) dataPoints.push(point);
-  }
-
   return {
     ...content,
     sections: normalizedSections,
-    dataPoints
+    dataPoints: content.dataPoints
   };
 };

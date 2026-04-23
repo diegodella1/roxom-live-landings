@@ -106,6 +106,91 @@
   margin-top: 18px;
 }
 
+.pipelineBlock {
+  margin-top: 22px;
+  padding-top: 18px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.blockLabel {
+  display: block;
+  margin-bottom: 12px;
+  color: var(--tertiary);
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+.flowCard {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+.flowCard strong {
+  font-size: 14px;
+}
+
+.flowStages,
+.flowAddList {
+  display: grid;
+  gap: 8px;
+}
+
+.flowStage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  background: rgba(6, 7, 7, 0.52);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+
+.stageName,
+.addStageButton,
+.flowActions button {
+  min-height: 34px;
+  color: #fff;
+  font-family: var(--font-mono), monospace;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  cursor: pointer;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+}
+
+.stageName,
+.addStageButton {
+  padding: 0 12px;
+  text-align: left;
+}
+
+.flowActions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.flowActions button {
+  padding: 0 10px;
+}
+
+.flowActions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
 .agentButton,
 .activeAgent {
   display: grid;

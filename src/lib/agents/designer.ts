@@ -2,7 +2,7 @@ import { runJsonAgent } from "../openai";
 import { enforceTopLineLanding } from "../landing-quality";
 import { slugify } from "../slug";
 import type { CriticResult, ImageCandidate, LandingContent, LandingDesignSpec, VisualAsset } from "../types";
-import { stitchDesignSystem } from "./prompts";
+import { getStitchDesignSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
 import type { WriterOutput } from "./writer";
 import { getAgentOverride } from "../admin-agents";
@@ -73,11 +73,43 @@ const ensurePrimaryImage = (content: LandingContent, image?: ImageCandidate) => 
   };
 };
 
+const ensureStoryImageCoverage = (content: LandingContent, images: ImageCandidate[]) => {
+  if (images.length === 0) return content;
+
+  const existingUrls = new Set(
+    content.visuals
+      .filter((visual): visual is VisualAsset & { url: string } => visual.type === "image" && Boolean(visual.url))
+      .map(visual => visual.url)
+  );
+  const targetCount = Math.min(images.length, 8);
+  if (existingUrls.size >= targetCount) return content;
+
+  const appendedVisuals = images
+    .filter(image => !existingUrls.has(image.url))
+    .slice(0, targetCount - existingUrls.size)
+    .map(image => ({
+      type: "image",
+      title: image.title,
+      url: image.url,
+      credit: image.credit,
+      alt: image.alt,
+      relevance: image.relevance,
+      relevanceReason: image.relevanceReason
+    }) satisfies VisualAsset);
+
+  if (appendedVisuals.length === 0) return content;
+  return {
+    ...content,
+    visuals: [...content.visuals, ...appendedVisuals]
+  };
+};
+
 export const runDesigner = async (topic: string, research: ResearchOutput, writing: WriterOutput) => {
   const slug = slugify(topic);
   const fallbackDesign = defaultStitchDesignSpec();
   const primaryImage = research.imageCandidates[0];
   const adminOverride = await getAgentOverride("designer");
+  const stitchDesignSystem = await getStitchDesignSystem();
   const content = await runJsonAgent<LandingContent>({
     agent: "designer",
     system: stitchDesignSystem,
@@ -112,11 +144,18 @@ Stitch design requirements:
   - motion: string
   - notes: string[] with at least 2 concrete implementation notes
 - Preserve the story's freshest angle in the first viewport. The hero, summary, and first article section must make the current development understandable without scrolling.
-- Layout must follow the dark magazine/news reference system: full-bleed image hero, long article body, inline imagery, timeline when useful, pull quotes, data/stat section when useful, reactions/source cards, gallery, and footer sources.
+- Layout must follow the Roxom live intelligence system: alert ticker, fixed masthead, command rail on desktop, dominant image hero, stacked hero metric cards, live-intel side column, strategic briefing band, long article body, inline imagery, timeline when useful, pull quotes, data/stat section when useful, reactions/source cards, gallery, and footer sources.
 - Do not produce a card-grid landing or compact dossier. The main experience is a readable long-form article with strong narrative pacing and inline visuals.
-- Use hot pink #ffb3b5 for live/urgent emphasis, neon purple #e9b3ff for structure, bright cyan #74d1ff for data/source links, and red only for critical breaking states.
+- Use the signal palette, not decorative branding:
+  - signal blue for active channels and command surfaces
+  - flow green for continuity/stability
+  - alert red for disruption, spikes, or breaking states
+  - hot pink/neon purple only when they support live-broadcast urgency or structural layering
 - It must feel like a Vice-style news feature: immersive, image-led, edgy but credible, human and specific, with sources visible but not dominating the reading experience.
 - Never expose pipeline/process language in reader-facing content or layout. Do not foreground section counts, source counts, repair logic, bibliography talk, monitoring cadence, or "conservative brief" framing in the hero, summary, sections, data cards, or update history.
+- The page should feel like a field dispatch with conviction, not a neutral dashboard. Make room for strong thesis lines, hard stakes, and state-power or monetary-pressure framing when the writing supports it.
+- The page should feel like a live intelligence feed. Information should appear to compete for attention in a controlled way, like a financial terminal or broadcast overlay, not like a static feature template.
+- Favor crisp hierarchy over long soft intros: one sharp thesis in the hero, one strong top-line block, then story modules that escalate the argument. The first viewport should feel like a newsroom command dashboard, not a magazine splash page with a sidebar bolted on.
 - Build topic-specific journalism into the structure, not generic blocks:
   - competition/rivalry pages need competitors, status/standings/result, stakes, momentum shifts, quotes/reactions, and next milestone.
   - election/vote pages need results, vote share/seats/delegates, winners/losers, turnout or reporting status, challenges, party statements, and next procedural step.
@@ -132,10 +171,15 @@ Stitch design requirements:
   - election-brief: election, referendum, vote, primary, runoff, legislative count, or leadership contest where results/outcomes matter.
   - visual-cover: default when none of the above dominates.
 - The format must complement the nature of the story. Do not force every story into the same rhythm.
-- Every requested item must produce a complete top-line landing with clear sections. The minimum reader contract is: lead, stakes, actors/entities, status or result, timeline/comparison, data or impact, reactions, uncertainty, next watch, and bottom source bibliography.
+- Every requested item must produce a compact top-line landing with clear sections. The minimum reader contract is: lead, stakes, actors/entities, status or result, evidence/data or impact, uncertainty or next watch, and bottom source bibliography.
 - Use a factual timeline only when chronology helps the reader understand the story. For market stories, use signals/data; for competitions, use status/stakes; for elections, use results/outcomes; for people, use profile timeline.
 - Use a large photographic hero when imageCandidates has a verified image URL.
-- If imageCandidates exists, include only story-relevant imageCandidates as VisualAsset objects with type "image", url, credit, alt, relevance, and relevanceReason from imageCandidates.
+- If imageCandidates exists, include story-relevant imageCandidates as VisualAsset objects with type "image", url, credit, alt, relevance, and relevanceReason from imageCandidates.
+- Use more of the verified photo pool when it exists. If there are 6 or more relevant imageCandidates, spend them across hero, inline article blocks, and the gallery instead of collapsing the page to one hero image.
+- The layout should not flatten into repeated equal cards. Use one dominant hero, one compact live-intel column, one strong strategic briefing block, and then wider readable article sections.
+- Article columns must stay readable. Avoid thin body columns or over-fragmenting the story into too many narrow panels.
+- When the story supports it, give the hero two top-line metric cards sourced from real dataPoints so the first screen carries both narrative and hard numbers.
+- Signal modules should feel reactive. Use timestamps, source labels, update cues, or confidence/reliability markers where they help scanning.
 - Images must be directly related to the news, named people, named places, named institutions, or the exact context. Do not use decorative stock imagery when a more relevant image exists.
 - Use SVG only as a fallback or supporting visual, never as the only visual when a source-associated image exists.
 - Create chart, map, timeline, bubble, surface, or comparison visuals only when they map to specific sourced facts/dataPoints. A chart without sourced values is not allowed.
@@ -150,9 +194,12 @@ First-pass quality gate before returning:
 - Pretend Critic will review the JSON next. Fix obvious failures before output.
 - Headline, subheadline, and summary must make the story understandable without scrolling.
 - The section order must answer, in order, what happened now, why it matters, who is involved, current status/result, evidence/data, reactions, uncertainty, and what happens next.
-- At least 9 sections must be present, each with real article prose and sourceUrls from the source list.
+- Aim for 6-8 sections. Do not inflate the page beyond that unless the story is genuinely complex and each extra section adds new information.
 - The top-line section map must have meaningful eyebrows, not repeated generic labels.
+- Prefer one concise explainer/data band, not multiple repeated dashboard bands that restate the same evidence.
+- If the page already has a hero, top-line block, and article body, do not add extra modules that merely summarize the same points again.
 - Reader-facing prose must stay story-first. If a sentence is mainly about sourcing mechanics, page workflow, or editorial guardrails, rewrite it into a factual story sentence or remove it.
+- If the writing surfaces freedom, sovereignty, sanctions, payment rails, energy choke points, fiscal stress, or bitcoin-relevant monetary fragility, reflect that in the hierarchy and cards instead of burying it in the lower sections.
 - Visuals must be story-relevant. If no real image is available, include a deliberate SVG/chart/map fallback visual direction instead of pretending a decorative image exists.
 - DesignSpec must match the retro-futurist broadcast system: hot pink, neon purple, bright cyan, glass restraint, strong source clarity.
 - Data points must be useful as top-line cards and must cite attached sources.
@@ -173,7 +220,7 @@ Writing: ${JSON.stringify(writing)}
       lastUpdatedUtc: new Date().toISOString(),
       sources: research.sources,
       visuals: research.imageCandidates.length > 0
-        ? research.imageCandidates.slice(0, 4).map(image => ({
+        ? research.imageCandidates.slice(0, 8).map(image => ({
             type: "image",
             title: image.title,
             url: image.url,
@@ -197,11 +244,12 @@ Writing: ${JSON.stringify(writing)}
       updateHistory: []
     })
   });
-  return ensurePrimaryImage(normalizeLandingDesign(content, fallbackDesign), primaryImage);
+  return ensureStoryImageCoverage(ensurePrimaryImage(normalizeLandingDesign(content, fallbackDesign), primaryImage), research.imageCandidates);
 };
 
 export const runDesignerRevision = async (content: LandingContent, critic: CriticResult, research: ResearchOutput) => {
   const adminOverride = await getAgentOverride("designer");
+  const stitchDesignSystem = await getStitchDesignSystem();
   return normalizeLandingDesign(await runJsonAgent<LandingContent>({
     agent: "designer",
     system: stitchDesignSystem,
@@ -217,6 +265,7 @@ Rules:
 - If dates differ, distinguish event date from report date.
 - Keep at least 9 substantial sections. If a section is thin, expand it only with already sourced facts, source-context framing, or clearly marked uncertainty.
 - Preserve source-associated image visuals from Research whenever imageCandidates are available.
+- If Research provides multiple strong imageCandidates, preserve and use enough of them to keep the landing visually alive across the article, not just the hero.
 - Use the retro-futurist broadcast look with restraint: strong hero, top-line story map, neon glass accents, clear section hierarchy, and source clarity.
 - Improve beauty and readability while fixing Critic issues. Better section titles, sharper summaries, stronger visual hints, and tighter data cards are valid repair work.
 - Keep or add topic-specific reporting depth: competitors/status/results for competitions, results/outcomes for elections, quotes from relevant parties when exact source text exists, and full source bibliography at the end.

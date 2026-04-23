@@ -1,6 +1,6 @@
 import { runJsonAgent } from "../openai";
 import { getAgentOverride } from "../admin-agents";
-import { editorialSystem } from "./prompts";
+import { getEditorialSystem } from "./prompts";
 
 export type DiscoveryCandidate = {
   topic: string;
@@ -129,6 +129,7 @@ ${input.adminOverride}
 
 export const discoverLiveTopic = async (hint?: string) => {
   const adminOverride = await getAgentOverride("discover");
+  const editorialSystem = await getEditorialSystem();
   const output = await runJsonAgent<DiscoveryOutput>({
     agent: "discover",
     system: editorialSystem,

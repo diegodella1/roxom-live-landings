@@ -1,6 +1,6 @@
 import { runJsonAgent } from "../openai";
 import type { StorySection } from "../types";
-import { editorialSystem } from "./prompts";
+import { getEditorialSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
 import { getAgentOverride } from "../admin-agents";
 
@@ -15,6 +15,7 @@ export type WriterOutput = {
 
 export const runWriter = async (research: ResearchOutput) => {
   const adminOverride = await getAgentOverride("writer");
+  const editorialSystem = await getEditorialSystem();
   return runJsonAgent<WriterOutput>({
     agent: "writer",
     system: editorialSystem,
@@ -28,9 +29,15 @@ Preserve the freshest angle: the headline, subheadline, summary, and first secti
 Write like a premium magazine/news feature in the spirit of Vice: immersive, scene-setting, sharp, human, and narrative-driven, while staying factual and sourced.
 This must read as a real article, not a tiny dossier, not bullet-note intelligence, and not a product brief.
 Never write reader-facing copy about the pipeline itself. Do not mention Critic, repair loops, source lists, source records, bibliography, monitoring cadence, verification workflow, or that the page is conservative/fallback/process-driven.
-Create 9-14 sections when the research supports it. Each section body should be 150-260 words and contain only sourced information.
+Voice target: top foreign correspondent with a clear point of view, not a sterile wire rewrite. The tone may carry judgment, urgency, and moral clarity, but every strong line must still be anchored in sourced reporting.
+When the facts support it, frame the story through freedom, state power, censorship, sovereignty, energy leverage, monetary fragility, sanctions, and the bitcoin/hard-money lens. Do not force bitcoin into every story. Use that lens only when there is a real connection to money, payments, reserves, confiscation risk, capital controls, energy markets, or the credibility of state systems.
+Avoid euphemistic bureaucrat language. Prefer muscular, concrete phrasing over abstract institutional blur.
+Sentence rhythm should feel modern and forceful: short thesis lines, clean paragraphs, strong transitions, and occasional sharp conclusions. Think dispatch, not academic memo.
+Create 6-8 sections when the research supports it. Each section body should be 110-220 words and contain only sourced information.
 Every requested topic must become a top-line landing, not a loose article dump. Cover these reader sections when supported by the research: what is known now, why it matters, who is involved, current status/result, timeline or comparison, data/impact, reactions, open uncertainty, and what could change next.
 Make the article experiential: open with tension, explain the stakes, introduce the people/institutions, reconstruct the timeline, show the money/power/risk dynamics, include market/social/political reactions, and end with what could happen next when supported by facts.
+Do not flatten conflict, repression, monetary breakdown, or coercive policy into bland neutrality. If the sources clearly show pressure, destruction, leverage, or loss of freedom, say so plainly.
+Use the Roxom-style strengths without copying phrasing: thesis-first opening, explicit incentive analysis, visible capital/power framing, and a final paragraph that lands with conviction.
 The format must complement the story. Use a factual timeline when chronology matters; use results/outcomes for elections, status/stakes for competitions, signals/data for markets, profile timeline for people, and impact/official-response structure for crises.
 Use the right journalistic frame for the topic:
 - Competition/rivalry: explain who is competing, current standings/status, score/result, key competitors, momentum shifts, stakes, and next round/milestone.
@@ -44,15 +51,17 @@ Avoid dry transitions. Each section should move the story forward and connect to
 Include at least 3 dataPoints when the research contains numbers, dates, counts, prices, named actors, or status markers.
 Use visualHint "chart" for sections with time, price, count, volume, comparison, route, or risk data. Use "map" for geography. Use "image" for actor/place/object sections.
 Before returning JSON, run this private preflight and fix failures yourself:
-- 9-14 sections are present and each body is 150-260 words when research supports it.
+- 6-8 sections are present and each body is 110-220 words when research supports it.
 - The first three sections make the landing immediately understandable: what happened, why it matters, who/what is involved.
 - Every section has at least one sourceUrl from Research.sources and no sourceUrl outside that list.
 - No generic section titles remain unless the topic truly demands them.
 - Summary and subheadline are specific enough that a reader can understand the story without scrolling.
+- The copy sounds like a real correspondent with a worldview, not a committee memo.
+- If money, sanctions, reserves, energy, payment rails, or fiscal strain matter to the story, at least one section and one top-line framing element should connect them to sovereignty, freedom, or the bitcoin/hard-money lens without inventing facts.
 - Data points are concrete, source-linked, and useful as top-line cards.
 - The writing gives Designer clear section intent, visualHint choices, and data/quote material so Critic should not need multiple repair loops.
 - No section body contains meta copy about sources, approval, fallback behavior, or the page generation process.
-- If research is too thin for 9-14 strong sections, use fewer only when unavoidable, but make each one specific, sourced, and useful.
+- If research is too thin for 6-8 strong sections, use fewer only when unavoidable, but make each one specific, sourced, and useful.
 ${adminOverride}
 Return JSON:
 {

@@ -1,5 +1,54 @@
 import type { ImageCandidate, LandingContent, Source, VisualAsset } from "./types";
 
+const candidateKey = (candidate: Pick<ImageCandidate, "url" | "title" | "credit">) =>
+  [
+    String(candidate.url ?? "").trim().toLowerCase(),
+    String(candidate.title ?? "").trim().toLowerCase(),
+    String(candidate.credit ?? "").trim().toLowerCase()
+  ].join("|");
+
+const imagePathPattern = /\.(avif|gif|jpe?g|png|webp)(?:$|[?#])/i;
+const knownImageHostPattern = /(^|\.)((dims|assets)\.apnews\.com|pbs\.twimg\.com|images\.[^/]+|image\.[^/]+|media\.[^/]+|cdn\.[^/]+)$/i;
+
+const isLowValueImageUrl = (rawUrl: string) => {
+  try {
+    const url = new URL(rawUrl);
+    const pathname = url.pathname.toLowerCase();
+    const hostname = url.hostname.toLowerCase();
+    return (
+      hostname.endsWith("wikipedia.org")
+      || hostname.endsWith("wikimedia.org")
+      || pathname.includes("social-share")
+      || pathname.includes("share-card")
+      || pathname.includes("/social/")
+      || pathname.includes("/share/")
+      || pathname.includes("thumb")
+      || pathname.includes("thumbnail")
+    );
+  } catch {
+    return true;
+  }
+};
+
+export const isLikelyRenderableImageUrl = (rawUrl: string) => {
+  try {
+    const url = new URL(rawUrl);
+    const pathname = url.pathname.toLowerCase();
+    const hostname = url.hostname.toLowerCase();
+
+    if (!["http:", "https:"].includes(url.protocol)) return false;
+    if (pathname.endsWith(".svg")) return false;
+    if (imagePathPattern.test(pathname)) return true;
+    if (hostname === "dims.apnews.com" || hostname === "assets.apnews.com") return true;
+    if (hostname === "apnews.com" && pathname.startsWith("/article/")) return false;
+    if (hostname.endsWith("reutersconnect.com")) return false;
+    if (pathname.includes("/article/") || pathname.includes("/news/") || pathname.includes("/story/")) return false;
+    return knownImageHostPattern.test(hostname);
+  } catch {
+    return false;
+  }
+};
+
 const extractMetaImage = (html: string) => {
   const patterns = [
     /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["'][^>]*>/i,
@@ -27,13 +76,13 @@ const toAbsoluteImageUrl = (imageUrl: string, sourceUrl: string) => {
     const absoluteUrl = new URL(imageUrl, sourceUrl);
     if (!["http:", "https:"].includes(absoluteUrl.protocol)) return null;
     if (absoluteUrl.pathname.endsWith(".svg")) return null;
-    return absoluteUrl.toString();
+    return isLikelyRenderableImageUrl(absoluteUrl.toString()) ? absoluteUrl.toString() : null;
   } catch {
     return null;
   }
 };
 
-export const discoverSourceImages = async (sources: Source[], limit = 5, timeoutMs = 5000) => {
+export const discoverSourceImages = async (sources: Source[], limit = 8, timeoutMs = 5000) => {
   const results = await Promise.allSettled(
     sources.slice(0, limit).map(async source => {
       const controller = new AbortController();
@@ -76,7 +125,7 @@ export const discoverSourceImages = async (sources: Source[], limit = 5, timeout
     });
 };
 
-export const discoverWikimediaImages = async (topic: string, limit = 2) => {
+export const discoverWikimediaImages = async (topic: string, limit = 4) => {
   const params = new URLSearchParams({
     action: "query",
     generator: "search",
@@ -124,26 +173,68 @@ export const discoverWikimediaImages = async (topic: string, limit = 2) => {
   }
 };
 
-export const withDiscoveredSourceImages = async (content: LandingContent): Promise<LandingContent> => {
-  if (content.visuals.some(visual => visual.type === "image" && visual.url?.startsWith("http"))) return content;
-  const images = [
-    ...await discoverSourceImages(content.sources, 4, 3200),
-    ...await discoverWikimediaImages(content.topic, 2)
-  ];
-  if (images.length === 0) return content;
+export const withDiscoveredSourceImages = async (content: LandingContent, targetImageCount = 8): Promise<LandingContent> => {
+  const sanitizedVisuals = content.visuals.filter(visual =>
+    visual.type !== "image" || (
+      typeof visual.url === "string"
+      && visual.url.startsWith("http")
+      && isLikelyRenderableImageUrl(visual.url)
+      && !isLowValueImageUrl(visual.url)
+    )
+  );
+  const existingImageVisuals = sanitizedVisuals.filter(
+    (visual): visual is VisualAsset & { type: "image"; url: string } => visual.type === "image" && Boolean(visual.url?.startsWith("http"))
+  );
+  if (existingImageVisuals.length >= targetImageCount && sanitizedVisuals.length === content.visuals.length) return content;
 
-  const imageVisuals = images.map(image => ({
-    type: "image",
-    title: image.title,
-    url: image.url,
-    credit: image.credit,
-    alt: image.alt,
-    relevance: image.relevance,
-    relevanceReason: image.relevanceReason
-  }) satisfies VisualAsset);
+  const images = [
+    ...await discoverSourceImages(content.sources, 10, 3200),
+    ...await discoverWikimediaImages(content.topic, 4)
+  ];
+  if (images.length === 0) {
+    return sanitizedVisuals.length === content.visuals.length
+      ? content
+      : {
+          ...content,
+          visuals: sanitizedVisuals
+        };
+  }
+
+  const existingKeys = new Set(existingImageVisuals.map(visual => candidateKey({
+    url: visual.url,
+    title: visual.title,
+    credit: visual.credit
+  })));
+  const imageVisuals = images
+    .filter(image => {
+      if (isLowValueImageUrl(image.url)) return false;
+      const key = candidateKey(image);
+      if (existingKeys.has(key)) return false;
+      existingKeys.add(key);
+      return true;
+    })
+    .slice(0, Math.max(0, targetImageCount - existingImageVisuals.length))
+    .map(image => ({
+      type: "image",
+      title: image.title,
+      url: image.url,
+      credit: image.credit,
+      alt: image.alt,
+      relevance: image.relevance,
+      relevanceReason: image.relevanceReason
+    }) satisfies VisualAsset);
+
+  if (imageVisuals.length === 0) {
+    return sanitizedVisuals.length === content.visuals.length
+      ? content
+      : {
+          ...content,
+          visuals: sanitizedVisuals
+        };
+  }
 
   return {
     ...content,
-    visuals: [...imageVisuals, ...content.visuals]
+    visuals: [...sanitizedVisuals, ...imageVisuals]
   };
 };

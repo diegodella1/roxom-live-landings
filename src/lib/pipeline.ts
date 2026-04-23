@@ -10,6 +10,7 @@ import {
 import { finalUrlForSlug } from "./config";
 import { hashValue } from "./hash";
 import { slugify } from "./slug";
+import { getCreateFlowStages, getLiveFlowStages } from "./pipeline-config";
 import { runCritic } from "./agents/critic";
 import { defaultStitchDesignSpec, runDesigner, runDesignerRevision } from "./agents/designer";
 import { deltaHash, runLiveMonitor, runLiveUpdater } from "./agents/live";
@@ -19,7 +20,7 @@ import type { LandingContent, LandingRecord } from "./types";
 import { enforceTopLineLanding } from "./landing-quality";
 
 const retryableStatuses = new Set(["drafting", "critic_review", "blocked", "cancelled", "failed"]);
-const defaultCriticRepairAttempts = 8;
+const defaultCriticRepairAttempts = 3;
 type PipelineStageReporter = (stage: string, detail?: string) => Promise<void> | void;
 
 const reportStage = async (reporter: PipelineStageReporter | undefined, stage: string, detail?: string) => {
@@ -30,6 +31,24 @@ const maxCriticRepairAttempts = () => {
   const configured = Number(process.env.CRITIC_REPAIR_ATTEMPTS);
   if (Number.isFinite(configured) && configured > 0) return Math.floor(configured);
   return defaultCriticRepairAttempts;
+};
+
+const normalizeCriticIssue = (issue: string) =>
+  issue
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[^a-z0-9 :_-]/g, "")
+    .trim();
+
+const criticIssueSet = (issues: string[]) => new Set(issues.map(normalizeCriticIssue).filter(Boolean));
+
+const issueOverlapRatio = (previous: Set<string>, next: Set<string>) => {
+  if (previous.size === 0 || next.size === 0) return 0;
+  let overlap = 0;
+  for (const issue of next) {
+    if (previous.has(issue)) overlap += 1;
+  }
+  return overlap / Math.max(previous.size, next.size);
 };
 
 const createOrRestartDraft = (input: { existing: LandingRecord | null; content: LandingContent; slug: string; topic: string }) => {
@@ -60,9 +79,7 @@ const safeBriefContent = (input: {
   const summarize = (text: string, fallback: string) => {
     const normalized = text.replace(/\s+/g, " ").trim();
     if (!normalized) return fallback;
-    const parts = normalized.match(/[^.!?]+[.!?]+/g);
-    const excerpt = parts?.slice(0, 2).join(" ").trim() ?? normalized;
-    return excerpt.length > 420 ? `${excerpt.slice(0, 417).trim()}...` : excerpt;
+    return normalized.length > 420 ? `${normalized.slice(0, 417).trim()}...` : normalized;
   };
   const writerSections = input.writing.sections.slice(0, 9);
   const fallbackSections = [
@@ -117,11 +134,15 @@ export const startLiveLanding = async (topic: string, onStage?: PipelineStageRep
   const slug = slugify(topic);
   const existing = getLandingBySlug(slug);
   if (existing && !retryableStatuses.has(existing.status)) return existing;
+  const createFlow = new Set(getCreateFlowStages());
 
   await reportStage(onStage, "researching", "Gathering current sources, facts, numbers, and image candidates.");
   const research = await runResearch(topic);
   await reportStage(onStage, "writing", `Building the editorial brief from ${research.sources.length} sources and ${research.facts.length} sourced facts.`);
   const writing = await runWriter(research);
+  if (createFlow.has("designStyle")) {
+    await reportStage(onStage, "design_style", "Selecting the image treatment style system for this topic.");
+  }
   await reportStage(onStage, "designing", `Choosing topic-aware layout and visuals. Image candidates found: ${research.imageCandidates.length}.`);
   const designed = await runDesigner(topic, research, writing);
   await reportStage(onStage, "saving_draft", `Saving draft slug=${slug}.`);
@@ -147,6 +168,8 @@ export const startLiveLanding = async (topic: string, onStage?: PipelineStageRep
     issues: critic.issues,
     summary: critic.summary
   });
+  let lastIssueSet = criticIssueSet(critic.issues);
+  let stagnantRepairRounds = 0;
 
   for (let attempt = 0; !critic.approved && critic.severity === "changes_requested" && attempt < repairLimit; attempt += 1) {
     repairAttemptsUsed = attempt + 1;
@@ -161,6 +184,7 @@ export const startLiveLanding = async (topic: string, onStage?: PipelineStageRep
       }
       lastContentHash = contentHash;
       critic = await runCritic(content, draft.id);
+      const nextIssueSet = criticIssueSet(critic.issues);
       const criticFingerprint = hashValue({
         severity: critic.severity,
         issues: critic.issues,
@@ -171,7 +195,20 @@ export const startLiveLanding = async (topic: string, onStage?: PipelineStageRep
         await reportStage(onStage, "repair_stopped", repairFailureReason);
         break;
       }
+      const overlap = issueOverlapRatio(lastIssueSet, nextIssueSet);
+      const issueCountDidNotImprove = nextIssueSet.size >= lastIssueSet.size;
+      if (!critic.approved && critic.severity === "changes_requested" && overlap >= 0.75 && issueCountDidNotImprove) {
+        stagnantRepairRounds += 1;
+      } else {
+        stagnantRepairRounds = 0;
+      }
+      if (stagnantRepairRounds >= 1) {
+        repairFailureReason = "Critic feedback is no longer materially improving after a revision, so the pipeline stopped instead of consuming all remaining repair attempts.";
+        await reportStage(onStage, "repair_stopped", repairFailureReason);
+        break;
+      }
       lastCriticFingerprint = criticFingerprint;
+      lastIssueSet = nextIssueSet;
     } catch (error) {
       repairFailureReason = error instanceof Error ? error.message : String(error);
       await reportStage(onStage, "repair_failed", `Repair hit a transient error: ${repairFailureReason}`);
@@ -233,6 +270,7 @@ export const runLiveCycleForLanding = async (slug: string) => {
   const landing = getLandingBySlug(slug);
   if (!landing) throw new Error(`Landing not found: ${slug}`);
   if (landing.status !== "live") return { landing, monitor: null, updated: false };
+  const liveFlow = new Set(getLiveFlowStages());
 
   const monitor = await runLiveMonitor(landing.content, landing.id);
   markLandingCycle(landing.id);
@@ -246,6 +284,11 @@ export const runLiveCycleForLanding = async (slug: string) => {
     updateLandingStatus(landing.id, "blocked");
     recordLiveCycle(landing.id, monitor.materiality, deltaHash(monitor), { approved: false, blocked: true });
     return { landing: getLandingBySlug(slug) ?? landing, monitor, updated: false };
+  }
+
+  if (!liveFlow.has("liveUpdater")) {
+    recordLiveCycle(landing.id, monitor.materiality, deltaHash(monitor), { approved: false, skipped: true, reason: "liveUpdater_disabled" });
+    return { landing, monitor, updated: false, skipped: "liveUpdater_disabled" as const };
   }
 
   const updatedContent = await runLiveUpdater(landing.content, monitor, landing.id);

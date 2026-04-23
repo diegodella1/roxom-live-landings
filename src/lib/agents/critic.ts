@@ -1,13 +1,14 @@
 import { runJsonAgent } from "../openai";
 import type { CriticResult, LandingContent } from "../types";
 import { validateLandingContent } from "../validation";
-import { editorialSystem } from "./prompts";
+import { getEditorialSystem } from "./prompts";
 import { getAgentOverride } from "../admin-agents";
 
 export const runCritic = async (content: LandingContent, landingId?: number) => {
   const local = validateLandingContent(content);
   if (!local.approved) return local;
   const adminOverride = await getAgentOverride("critic");
+  const editorialSystem = await getEditorialSystem();
 
   return runJsonAgent<CriticResult>({
     agent: "critic",
@@ -24,6 +25,7 @@ Review like a red team, but make the result useful to autonomous repair. The goa
 Be understanding, plain-spoken, and guidance-oriented. Prefer the smallest safe fix that preserves a landing outcome.
 Prioritize issues in this order: unsupported factual claims, unsafe/legal wording, missing or invalid sources, stale or unclear current angle, weak first viewport/top-line clarity, thin or generic sections, irrelevant visuals, missing data/impact/reactions/next-step context, then style polish.
 Treat meta/process copy as a quality issue: if the landing talks about source lists, Critic approval, fallback behavior, live monitoring cadence, or editorial workflow instead of advancing the reported story, request changes.
+Do not punish the landing for having a strong worldview or correspondent voice when that voice is supported by the facts. The problem is unsupported rhetoric, not sharp writing.
 Make every issue understandable and directly repairable. Each issue must follow this format:
 "area: problem. Fix: exact action needed."
 Good examples:

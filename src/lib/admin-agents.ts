@@ -1,23 +1,29 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { env } from "./config";
 import type { AgentName } from "./types";
+import { isSystemPromptId, listSystemPrompts, saveSystemPrompt, systemPromptPath, type SystemPromptId } from "./system-prompts";
 
 export type EditableAgentId = AgentName;
+export type EditableEntryId = EditableAgentId | SystemPromptId;
 
 export type EditableAgent = {
-  id: EditableAgentId;
+  id: EditableEntryId;
   label: string;
   role: string;
   filePath: string;
-  status: "active" | "role-only";
+  status: "active" | "role-only" | "system";
   currentDescription: string;
   mdPath: string;
   markdown: string;
 };
 
 type AgentDefinition = Omit<EditableAgent, "mdPath" | "markdown">;
+type AgentRecordDefinition = Omit<EditableAgent, "mdPath" | "markdown" | "id" | "status"> & {
+  id: EditableAgentId;
+  status: "active" | "role-only";
+};
 
-const agentDefinitions: AgentDefinition[] = [
+const agentDefinitions: AgentRecordDefinition[] = [
   {
     id: "telegramGateway",
     label: "Telegram Gateway",
@@ -26,6 +32,24 @@ const agentDefinitions: AgentDefinition[] = [
     status: "role-only",
     currentDescription:
       "Receives Telegram commands, verifies allowed chats, starts discovered or requested landings, reports stage progress, sends final URLs, lists live landings, and can trigger live update cycles. This role does not currently call an LLM directly."
+  },
+  {
+    id: "slackGateway",
+    label: "Slack Gateway",
+    role: "Channel mentions, thread replies, status updates, and operational alerts in Slack.",
+    filePath: "src/lib/slack.ts",
+    status: "role-only",
+    currentDescription:
+      "Receives Slack app mentions in approved channels, keeps work inside threads, interprets reply-to-URL context as an update or source-driven request, reports stage progress, sends final URLs, and can trigger live update cycles. This role does not currently call an LLM directly."
+  },
+  {
+    id: "designStyle",
+    label: "Design Style Agent",
+    role: "Selects the visual style system for image treatment based on topic, request, and template.",
+    filePath: "src/lib/agents/design-style.ts",
+    status: "role-only",
+    currentDescription:
+      "Chooses one approved visual style from the project style catalog for image editing or generation. It should pick styles based on explicit user request first, then topic and template fit, and return a clear rationale plus prompt directives and negative directives for downstream image treatment."
   },
   {
     id: "discover",
@@ -106,7 +130,7 @@ const storePath = () => `${storeDirectory().replace(/\/$/, "")}/admin-agent-over
 const markdownDirectory = () => process.env.AGENT_MD_DIR ?? `${storeDirectory().replace(/\/$/, "")}/agents`;
 const markdownPath = (agentId: EditableAgentId) => `${markdownDirectory().replace(/\/$/, "")}/${agentId}.md`;
 
-const defaultAgentMarkdown = (agent: AgentDefinition) => `# ${agent.label}
+const defaultAgentMarkdown = (agent: AgentRecordDefinition) => `# ${agent.label}
 
 ## Role
 ${agent.role}
@@ -129,9 +153,9 @@ const readOverrides = async (): Promise<Partial<Record<EditableAgentId, string>>
   }
 };
 
-export const listEditableAgents = async (): Promise<EditableAgent[]> => {
+export const listEditableEntries = async (): Promise<EditableAgent[]> => {
   const overrides = await readOverrides();
-  return Promise.all(agentDefinitions.map(async agent => {
+  const agents = await Promise.all(agentDefinitions.map(async agent => {
     const mdPath = markdownPath(agent.id);
     const markdown = await readAgentMarkdown(agent, overrides[agent.id]);
     return {
@@ -140,7 +164,23 @@ export const listEditableAgents = async (): Promise<EditableAgent[]> => {
       markdown
     };
   }));
+  const systemPrompts = await listSystemPrompts();
+  return [
+    ...systemPrompts.map(prompt => ({
+      id: prompt.id,
+      label: prompt.label,
+      role: "Shared system prompt",
+      filePath: "src/lib/agents/prompts.ts",
+      status: "system" as const,
+      currentDescription: prompt.description,
+      mdPath: systemPromptPath(prompt.id),
+      markdown: prompt.markdown
+    })),
+    ...agents
+  ];
 };
+
+export const listEditableAgents = listEditableEntries;
 
 export const getAgentOverride = async (agentId: EditableAgentId) => {
   const agent = agentDefinitions.find(definition => definition.id === agentId);
@@ -151,7 +191,7 @@ export const getAgentOverride = async (agentId: EditableAgentId) => {
   return `\n\nAdmin Markdown instructions for ${agentId} agent:\n${markdown}\n`;
 };
 
-const readAgentMarkdown = async (agent: AgentDefinition, legacyOverride?: string) => {
+const readAgentMarkdown = async (agent: AgentRecordDefinition, legacyOverride?: string) => {
   try {
     return await readFile(markdownPath(agent.id), "utf8");
   } catch (error) {
@@ -175,7 +215,10 @@ ${legacyOverride.trim()}
   }
 };
 
-export const saveAgentMarkdown = async (agentId: EditableAgentId, markdown: string) => {
+export const saveEditableEntryMarkdown = async (agentId: EditableEntryId, markdown: string) => {
+  if (isSystemPromptId(agentId)) {
+    return saveSystemPrompt(agentId, markdown);
+  }
   const agent = agentDefinitions.find(definition => definition.id === agentId);
   if (!agent) {
     throw new Error(`Unknown editable agent: ${agentId}`);
@@ -186,5 +229,9 @@ export const saveAgentMarkdown = async (agentId: EditableAgentId, markdown: stri
   return `${cleaned}\n`;
 };
 
-export const isEditableAgentId = (value: unknown): value is EditableAgentId =>
-  typeof value === "string" && agentDefinitions.some(agent => agent.id === value);
+export const saveAgentMarkdown = saveEditableEntryMarkdown;
+
+export const isEditableEntryId = (value: unknown): value is EditableEntryId =>
+  (typeof value === "string" && agentDefinitions.some(agent => agent.id === value)) || isSystemPromptId(value);
+
+export const isEditableAgentId = isEditableEntryId;

@@ -93,6 +93,18 @@ export const getDb = (): DatabaseSync => {
       created_at TEXT NOT NULL
     );
 
+    CREATE TABLE IF NOT EXISTS chat_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      platform TEXT NOT NULL,
+      direction TEXT NOT NULL,
+      room_id TEXT,
+      thread_id TEXT,
+      actor_id TEXT,
+      command TEXT,
+      payload_json TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    );
+
     CREATE TABLE IF NOT EXISTS app_settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL,
@@ -248,11 +260,47 @@ export const recordLiveCycle = (landingId: number, materiality: string, deltaHas
   `).run(landingId, materiality, deltaHash, JSON.stringify(criticResult), now());
 };
 
+export const recordChatEvent = (input: {
+  platform: "telegram" | "slack";
+  direction: "in" | "out";
+  payload: unknown;
+  roomId?: string;
+  threadId?: string;
+  actorId?: string;
+  command?: string;
+}) => {
+  getDb().prepare(`
+    INSERT INTO chat_events (platform, direction, room_id, thread_id, actor_id, command, payload_json, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    input.platform,
+    input.direction,
+    input.roomId ?? null,
+    input.threadId ?? null,
+    input.actorId ?? null,
+    input.command ?? null,
+    JSON.stringify(input.payload),
+    now()
+  );
+};
+
 export const recordTelegramEvent = (direction: "in" | "out", payload: unknown, chatId?: string, command?: string) => {
   getDb().prepare(`
     INSERT INTO telegram_events (direction, chat_id, command, payload_json, created_at)
     VALUES (?, ?, ?, ?, ?)
   `).run(direction, chatId ?? null, command ?? null, JSON.stringify(payload), now());
+  recordChatEvent({ platform: "telegram", direction, payload, roomId: chatId, command });
+};
+
+export const findLandingBySourceUrl = (sourceUrl: string) => {
+  const row = getDb().prepare(`
+    SELECT landings.* FROM landings
+    INNER JOIN sources ON sources.landing_id = landings.id
+    WHERE sources.url = ?
+    ORDER BY landings.updated_at DESC
+    LIMIT 1
+  `).get(sourceUrl);
+  return row ? rowToLanding(row) : null;
 };
 
 export const getAppSetting = (key: string, fallback: string) => {

@@ -32,8 +32,8 @@ export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingCo
     slug,
     topic,
     headline: `Live brief: ${topic}`,
-    subheadline: "This live brief tracks the story with verified sources, context, and live updates.",
-    summary: `A live news landing for ${topic}, prepared with sourced context and a 30-minute update loop.`,
+    subheadline: "This live brief tracks the story with verified sources and current context.",
+    summary: `A live news landing for ${topic}, prepared from sourced reporting and ready for tighter updates as the story moves.`,
     status: "drafting",
     lastUpdatedUtc: now(),
     sources,
@@ -50,7 +50,7 @@ export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingCo
       id: "what-happened",
       eyebrow: "Live Brief",
       title: "What happened",
-      body: `The pipeline is preparing a sourced live brief for ${topic}. Production mode will replace this fallback with fresh web-backed research.`,
+      body: `This page is tracking ${topic} and will tighten as stronger sourced reporting is assembled.`,
       visualHint: "svg",
       sourceUrls: [primarySourceUrl]
     },
@@ -58,7 +58,7 @@ export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingCo
       id: "why-it-matters",
       eyebrow: "Impact",
       title: "Why it matters now",
-      body: "The story is being monitored for market impact, official statements, and material changes that deserve a page update.",
+      body: "The story is being tracked for official statements, market effects, and verified changes that materially alter the current picture.",
       visualHint: "data",
       sourceUrls: [primarySourceUrl]
     },
@@ -66,26 +66,13 @@ export const fallbackLanding = (topic: string, slug = slugify(topic)): LandingCo
       id: "what-next",
       eyebrow: "Next Watch",
       title: "What changes the page",
-      body: "The live loop updates only when a verified important or critical delta passes Critic approval.",
+      body: "The next meaningful change will come from a verified shift in facts, official action, or market impact tied directly to the story.",
       visualHint: "quote",
       sourceUrls: [primarySourceUrl]
     }
   ],
   quotes: [],
-  dataPoints: [
-    {
-      label: "Update cycle",
-      value: "30 min",
-      context: "Live monitor checks active landings every configured cycle.",
-      sourceUrl: primarySourceUrl
-    },
-    {
-      label: "Approval gate",
-      value: "Critic",
-      context: "Every first publish and material update requires Critic approval.",
-      sourceUrl: primarySourceUrl
-    }
-  ],
+    dataPoints: [],
   designSpec: {
     source: "stitch",
     styleName: "source-forward editorial visual",

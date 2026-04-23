@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "News Landings Experiment",
-  description: "Telegram-operated live news landing pages."
+  description: "Chat-operated live news landing pages."
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
