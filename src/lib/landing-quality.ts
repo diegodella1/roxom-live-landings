@@ -1,7 +1,7 @@
 import type { LandingContent, StorySection } from "./types";
 
 const minimumSectionCount = 9;
-const minimumSectionWords = 120;
+const minimumSectionWords = 80;
 
 const sectionBlueprints: Array<Pick<StorySection, "id" | "eyebrow" | "title" | "visualHint">> = [
   { id: "lead", eyebrow: "Lead", title: "What is known now", visualHint: "image" },
@@ -17,13 +17,6 @@ const sectionBlueprints: Array<Pick<StorySection, "id" | "eyebrow" | "title" | "
 
 const wordCount = (text: string) => text.split(/\s+/).filter(Boolean).length;
 
-const sourceListText = (content: LandingContent) => {
-  const outlets = content.sources.map(source => source.outlet).filter(Boolean);
-  if (outlets.length === 0) return "the attached source list";
-  if (outlets.length === 1) return outlets[0];
-  return `${outlets.slice(0, -1).join(", ")} and ${outlets[outlets.length - 1]}`;
-};
-
 const sectionSources = (content: LandingContent, section?: StorySection) => {
   const sourceUrls = new Set(content.sources.map(source => source.url));
   const validSectionSources = section?.sourceUrls?.filter(url => sourceUrls.has(url)) ?? [];
@@ -31,15 +24,24 @@ const sectionSources = (content: LandingContent, section?: StorySection) => {
   return content.sources.slice(0, 3).map(source => source.url);
 };
 
+const cleanReaderFacingCopy = (text: string) => text
+  .replace(/\s+/g, " ")
+  .replace(/This section is intentionally conservative:[^.]*\./gi, "")
+  .replace(/For [^.]*, the useful reader task is[^.]*\./gi, "")
+  .replace(/The [^.]* angle should be read alongside the full bibliography below, which currently draws from[^.]*\./gi, "")
+  .replace(/As the live monitor finds material changes, this section can be replaced[^.]*\./gi, "")
+  .replace(/Critic approval/gi, "editorial review")
+  .trim();
+
 const expandBody = (content: LandingContent, body: string, sectionTitle: string) => {
-  const safeBody = body.trim() || content.summary || `This section tracks ${content.topic} from the attached sources.`;
+  const safeBody = cleanReaderFacingCopy(body.trim() || content.summary || `This section tracks ${content.topic}.`);
   if (wordCount(safeBody) >= minimumSectionWords) return safeBody;
 
-  const sourceText = sourceListText(content);
-  const guardrail = ` This section is intentionally conservative: it stays inside the reporting attached to this landing, keeps source links visible, and avoids adding claims that are not present in the source record. For ${content.topic}, the useful reader task is to separate what is confirmed from what is still moving, then make the next monitoring point clear.`;
-  const context = ` The ${sectionTitle.toLowerCase()} angle should be read alongside the full bibliography below, which currently draws from ${sourceText}. As the live monitor finds material changes, this section can be replaced with more specific reported detail after Critic approval.`;
+  const context = sectionTitle.toLowerCase().includes("next")
+    ? ` The key question now is what new decision, strike, funding move, or official statement would materially change the story next.`
+    : ` This section should stay focused on ${sectionTitle.toLowerCase()} and connect the current development back to the main turn in the story.`;
 
-  return `${safeBody}${guardrail}${context}`;
+  return `${safeBody}${context}`.trim();
 };
 
 export const enforceTopLineLanding = (content: LandingContent): LandingContent => {

@@ -17,6 +17,21 @@ const sectionDateLabel = (section: StorySection, index: number) => {
   return match?.[0] ?? `Step ${index + 1}`;
 };
 
+const trimSentenceExcerpt = (text: string, maxLength = 220) => {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const sentences = normalized.match(/[^.!?]+[.!?]+/g);
+  const excerpt = sentences?.slice(0, 2).join(" ").trim() ?? normalized;
+  return excerpt.length > maxLength ? `${excerpt.slice(0, maxLength - 3).trim()}...` : excerpt;
+};
+
+const sourceNamesForSection = (content: LandingContent, section: StorySection) => {
+  const names = section.sourceUrls
+    .map(sourceUrl => sourceLabel(content, sourceUrl))
+    .filter(Boolean);
+  return [...new Set(names)];
+};
+
 const contextHeading = (content: LandingContent) => {
   switch (content.designSpec?.layout) {
     case "market-brief":
@@ -99,6 +114,10 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
   const heroImage = imageVisuals[0];
   const articleImages = imageVisuals.slice(1);
   const heroTags = [content.designSpec?.layout?.replace("-", " "), content.topic].filter(Boolean).slice(0, 2);
+  const highlightCards = content.dataPoints.slice(0, 3);
+  const storyMapSections = content.sections.slice(0, 5);
+  const visibleUpdates = content.updateHistory.filter(update => !/fallback|repair|critic/i.test(update.summary));
+  const reactionSources = content.sources.slice(0, 3);
 
   return (
     <main className={styles.shell} data-layout={content.designSpec?.layout ?? "visual-cover"}>
@@ -137,24 +156,19 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
               <p>{content.summary}</p>
             </div>
             <div className={styles.topLineStats} aria-label="Landing status">
-              <div>
-                <strong>{content.sections.length}</strong>
-                <span>sections</span>
-              </div>
-              <div>
-                <strong>{content.sources.length}</strong>
-                <span>sources</span>
-              </div>
-              <div>
-                <strong>{content.dataPoints.length}</strong>
-                <span>data points</span>
-              </div>
+              {highlightCards.map(point => (
+                <a key={`${point.label}-${point.value}`} href={point.sourceUrl} target="_blank" rel="noreferrer">
+                  <span>{point.label}</span>
+                  <strong>{point.value}</strong>
+                  <small>{point.context}</small>
+                </a>
+              ))}
             </div>
             <nav className={styles.storyMap} aria-label="Story sections">
-              {content.sections.slice(0, 9).map((section, index) => (
+              {storyMapSections.map((section, index) => (
                 <a href={`#${section.id}`} key={section.id}>
                   <span>{String(index + 1).padStart(2, "0")}</span>
-                  <strong>{section.eyebrow || section.title}</strong>
+                  <strong>{section.title}</strong>
                 </a>
               ))}
             </nav>
@@ -187,11 +201,14 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                   <h2>{section.title}</h2>
                   <p>{section.body}</p>
                   <div className={styles.sourceTags} aria-label="Sources for this section">
-                    {section.sourceUrls.map((sourceUrl, sourceIndex) => (
+                    {section.sourceUrls.slice(0, 2).map((sourceUrl, sourceIndex) => (
                       <a href={sourceUrl} target="_blank" rel="noreferrer" key={sourceUrl}>
                         {sourceLabel(content, sourceUrl)} {sourceIndex + 1}
                       </a>
                     ))}
+                    {section.sourceUrls.length > 2 && (
+                      <span className={styles.moreSources}>+{section.sourceUrls.length - 2} more sources</span>
+                    )}
                   </div>
                   {shouldShowMedia && <SectionMedia section={section} visual={visual} index={index} />}
                 </motion.section>
@@ -213,8 +230,8 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
                 <span className={styles.timelineDate}>{sectionDateLabel(section, index)}</span>
                 <span className={styles.timelineDot} aria-hidden="true" />
                 <div>
-                  <p>{section.body}</p>
-                  <small>{section.sourceUrls.map(sourceUrl => sourceLabel(content, sourceUrl)).join(" · ")}</small>
+                  <p>{trimSentenceExcerpt(section.body, 180)}</p>
+                  <small>{sourceNamesForSection(content, section).slice(0, 2).join(" · ")}</small>
                 </div>
               </li>
             ))}
@@ -281,15 +298,15 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
 
       <section className={styles.reactionsSection} aria-label="Reactions and perspectives">
         <div className={styles.containerWide}>
-          <div className={styles.sectionLabel}>
-            <span>Reactions</span>
-            <i aria-hidden="true" />
-          </div>
-          <div className={styles.reactionsGrid}>
-            {content.sources.slice(0, 6).map(source => (
-              <a className={styles.reactionCard} href={source.url} target="_blank" rel="noreferrer" key={source.url}>
-                <span aria-hidden="true">{source.outlet.slice(0, 2).toUpperCase()}</span>
-                <div>
+            <div className={styles.sectionLabel}>
+              <span>Reporting Threads</span>
+              <i aria-hidden="true" />
+            </div>
+            <div className={styles.reactionsGrid}>
+              {reactionSources.map(source => (
+                <a className={styles.reactionCard} href={source.url} target="_blank" rel="noreferrer" key={source.url}>
+                  <span aria-hidden="true">{source.outlet.slice(0, 2).toUpperCase()}</span>
+                  <div>
                   <strong>{source.outlet}</strong>
                   <small>{source.credibility}</small>
                 </div>
@@ -319,14 +336,14 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
         </section>
       )}
 
-      {content.updateHistory.length > 0 && (
+      {visibleUpdates.length > 0 && (
         <section className={styles.updates}>
           <div className={styles.container}>
             <div className={styles.sectionLabel}>
               <span>Live Update History</span>
               <i aria-hidden="true" />
             </div>
-            {content.updateHistory.slice(0, 5).map(update => (
+            {visibleUpdates.slice(0, 5).map(update => (
               <div key={`${update.timestampUtc}-${update.summary}`}>
                 <strong>{update.materiality}</strong>
                 <p>{update.summary}</p>
@@ -345,8 +362,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
           </div>
           <div className={styles.sourcesIntro}>
             <p>
-              This landing is built from source-bound reporting. Each article section links to the sources
-              used for its claims; the full source list is collected here for review.
+              Reporting is linked inline where each section makes its core claims. The full reading list is here if you want to audit or go deeper.
             </p>
             <span>{content.sources.length} sources · Updated {new Date(content.lastUpdatedUtc).toLocaleString()}</span>
           </div>
@@ -370,8 +386,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
 
       <footer className={styles.footer}>
         <p>
-          <strong>Live News Landings</strong> · Updated {new Date(content.lastUpdatedUtc).toLocaleString()} ·{" "}
-          {content.sections.length} story sections · {content.dataPoints.length} sourced data points
+          <strong>Live News Landings</strong> · Updated {new Date(content.lastUpdatedUtc).toLocaleString()}
         </p>
       </footer>
     </main>

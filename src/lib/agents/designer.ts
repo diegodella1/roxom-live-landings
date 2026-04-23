@@ -116,6 +116,7 @@ Stitch design requirements:
 - Do not produce a card-grid landing or compact dossier. The main experience is a readable long-form article with strong narrative pacing and inline visuals.
 - Use hot pink #ffb3b5 for live/urgent emphasis, neon purple #e9b3ff for structure, bright cyan #74d1ff for data/source links, and red only for critical breaking states.
 - It must feel like a Vice-style news feature: immersive, image-led, edgy but credible, human and specific, with sources visible but not dominating the reading experience.
+- Never expose pipeline/process language in reader-facing content or layout. Do not foreground section counts, source counts, repair logic, bibliography talk, monitoring cadence, or "conservative brief" framing in the hero, summary, sections, data cards, or update history.
 - Build topic-specific journalism into the structure, not generic blocks:
   - competition/rivalry pages need competitors, status/standings/result, stakes, momentum shifts, quotes/reactions, and next milestone.
   - election/vote pages need results, vote share/seats/delegates, winners/losers, turnout or reporting status, challenges, party statements, and next procedural step.
@@ -151,6 +152,7 @@ First-pass quality gate before returning:
 - The section order must answer, in order, what happened now, why it matters, who is involved, current status/result, evidence/data, reactions, uncertainty, and what happens next.
 - At least 9 sections must be present, each with real article prose and sourceUrls from the source list.
 - The top-line section map must have meaningful eyebrows, not repeated generic labels.
+- Reader-facing prose must stay story-first. If a sentence is mainly about sourcing mechanics, page workflow, or editorial guardrails, rewrite it into a factual story sentence or remove it.
 - Visuals must be story-relevant. If no real image is available, include a deliberate SVG/chart/map fallback visual direction instead of pretending a decorative image exists.
 - DesignSpec must match the retro-futurist broadcast system: hot pink, neon purple, bright cyan, glass restraint, strong source clarity.
 - Data points must be useful as top-line cards and must cite attached sources.

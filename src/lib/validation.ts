@@ -1,6 +1,16 @@
 import type { CriticResult, LandingContent } from "./types";
 
 const sectionWordCount = (body: string) => body.split(/\s+/).filter(Boolean).length;
+const forbiddenMetaPatterns = [
+  /this section is intentionally conservative/i,
+  /source record/i,
+  /full bibliography below/i,
+  /critic approval/i,
+  /live monitor/i,
+  /repair loop/i,
+  /repair feedback/i,
+  /fallback/i
+];
 
 export const validateLandingContent = (content: LandingContent): CriticResult => {
   const issues: string[] = [];
@@ -53,6 +63,14 @@ export const validateLandingContent = (content: LandingContent): CriticResult =>
     for (const sourceUrl of section.sourceUrls) {
       if (!sourceUrls.has(sourceUrl)) issues.push(`section:${section.id}: Cites sourceUrl "${sourceUrl}" but that URL is not in content.sources. Use only attached source URLs.`);
     }
+
+    if (forbiddenMetaPatterns.some(pattern => pattern.test(section.body))) {
+      issues.push(`section:${section.id}: Body contains pipeline/meta boilerplate. Fix: replace process language with story facts, stakes, actors, or sourced uncertainty.`);
+    }
+  }
+
+  if (forbiddenMetaPatterns.some(pattern => pattern.test(content.summary))) {
+    issues.push("summary: Remove pipeline/process wording and rewrite the summary around the reported development itself.");
   }
 
   for (const quote of content.quotes) {

@@ -55,11 +55,31 @@ const safeBriefContent = (input: {
   reason: string;
 }): LandingContent => {
   const timestamp = new Date().toISOString();
-  const facts = input.base.summary
-    ? [input.base.summary, ...input.writing.sections.map(section => section.body)]
-    : input.writing.sections.map(section => section.body);
   const primarySource = input.base.sources[0];
   const primarySourceUrl = primarySource?.url ?? finalUrlForSlug(input.slug);
+  const summarize = (text: string, fallback: string) => {
+    const normalized = text.replace(/\s+/g, " ").trim();
+    if (!normalized) return fallback;
+    const parts = normalized.match(/[^.!?]+[.!?]+/g);
+    const excerpt = parts?.slice(0, 2).join(" ").trim() ?? normalized;
+    return excerpt.length > 420 ? `${excerpt.slice(0, 417).trim()}...` : excerpt;
+  };
+  const writerSections = input.writing.sections.slice(0, 9);
+  const fallbackSections = [
+    { id: "lead", eyebrow: "Now", title: "What changed now", body: summarize(input.writing.summary || input.base.summary, `This page is tracking ${input.topic}.`), visualHint: "image" as const },
+    { id: "stakes", eyebrow: "Why It Matters", title: "Why this matters", body: summarize(writerSections[1]?.body ?? writerSections[0]?.body ?? "", `The current turn in ${input.topic} matters because it changes the immediate pressure points around the story.`), visualHint: "data" as const },
+    { id: "actors", eyebrow: "Actors", title: "Who is driving the story", body: summarize(writerSections[2]?.body ?? writerSections[0]?.body ?? "", "The key actors are the officials, institutions, and affected parties named in the reporting tied to this landing."), visualHint: "image" as const },
+    { id: "status", eyebrow: "Status", title: "Where things stand", body: summarize(writerSections[3]?.body ?? writerSections[0]?.body ?? "", "The situation remains active, with the latest reporting clarifying what is confirmed and what is still unresolved."), visualHint: "chart" as const },
+    { id: "timeline", eyebrow: "Timeline", title: "How the latest turn developed", body: summarize(writerSections[4]?.body ?? writerSections[0]?.body ?? "", "The latest turn follows earlier decisions and battlefield or diplomatic developments already reflected in the attached reporting."), visualHint: "data" as const },
+    { id: "impact", eyebrow: "Impact", title: "What changes on the ground", body: summarize(writerSections[5]?.body ?? writerSections[1]?.body ?? "", "The reported impact falls on the institutions, civilians, markets, or military positions affected by this development."), visualHint: "map" as const },
+    { id: "reactions", eyebrow: "Reaction", title: "What officials and markets are reacting to", body: summarize(writerSections[6]?.body ?? writerSections[2]?.body ?? "", "Reaction is visible through official statements, policy moves, and the way major actors are adjusting to the latest development."), visualHint: "quote" as const },
+    { id: "risk", eyebrow: "Uncertainty", title: "What remains unresolved", body: summarize(writerSections[7]?.body ?? writerSections[3]?.body ?? "", "Several parts of the story are still unsettled, especially around timing, escalation risk, and what follow-through actually materializes."), visualHint: "data" as const },
+    { id: "next", eyebrow: "Watch Next", title: "What could change the landing next", body: summarize(writerSections[8]?.body ?? writerSections[4]?.body ?? "", "The next meaningful update would be a verified shift in official policy, battlefield conditions, financing, or negotiations."), visualHint: "svg" as const }
+  ].map((section, index) => ({
+    ...section,
+    sourceUrls: writerSections[index]?.sourceUrls?.length ? writerSections[index].sourceUrls : [primarySourceUrl]
+  }));
+  const fallbackDataPoints = (input.base.dataPoints.length > 0 ? input.base.dataPoints : input.writing.dataPoints).slice(0, 3);
 
   return enforceTopLineLanding({
     ...input.base,
@@ -67,51 +87,19 @@ const safeBriefContent = (input: {
     topic: input.topic,
     headline: input.writing.headline || `Live brief: ${input.topic}`,
     subheadline: primarySource
-      ? `A conservative sourced brief based on reporting from ${primarySource.outlet}.`
-      : "A conservative sourced brief with live monitoring enabled.",
-    summary:
-      facts[0] ??
-      `This page is tracking ${input.topic}. It will update only when verified source material passes the publishing guardrails.`,
+      ? summarize(input.writing.subheadline, `The latest reporting from ${primarySource.outlet} frames the current turn in ${input.topic}.`)
+      : summarize(input.writing.subheadline, `This page tracks the latest reported turn in ${input.topic}.`),
+    summary: summarize(input.writing.summary || input.base.summary, `This page tracks the latest reported turn in ${input.topic}.`),
     status: "live",
     lastUpdatedUtc: timestamp,
-    sections: [
-      {
-        id: "what-is-reported",
-        eyebrow: "Reported",
-        title: "What is reported now",
-        body: facts[0] ?? `The current brief tracks ${input.topic} using the listed sources.`,
-        visualHint: "data",
-        sourceUrls: [primarySourceUrl]
-      },
-      {
-        id: "source-context",
-        eyebrow: "Sources",
-        title: "Where this stands",
-        body:
-          input.base.sources.length > 0
-            ? `This brief uses ${input.base.sources.map(source => source.outlet).join(", ")} as its source base and avoids claims outside that reporting.`
-            : "This brief is waiting for stronger source coverage before adding more detail.",
-        visualHint: "quote",
-        sourceUrls: input.base.sources.length > 0 ? input.base.sources.map(source => source.url) : [primarySourceUrl]
-      },
-      {
-        id: "watch-next",
-        eyebrow: "Watch Next",
-        title: "What could change",
-        body: "The live monitor will update this page when new verified facts materially change the story.",
-        visualHint: "svg",
-        sourceUrls: [primarySourceUrl]
-      }
-    ],
+    sections: fallbackSections,
     quotes: [],
-    dataPoints: [
-      {
-        label: "Sources",
-        value: String(input.base.sources.length),
-        context: "Count of sources attached to this conservative live brief.",
-        sourceUrl: primarySourceUrl
-      }
-    ],
+    dataPoints: fallbackDataPoints.length > 0 ? fallbackDataPoints : [{
+      label: "Current turn",
+      value: "Active",
+      context: "The story remains live and subject to verified updates.",
+      sourceUrl: primarySourceUrl
+    }],
     designSpec: input.base.designSpec ?? defaultStitchDesignSpec(),
     updateHistory: [
       {
