@@ -22,7 +22,7 @@ export default async function AdminPage() {
         </div>
         <h1>Control prompts, flow order, and live pipeline behavior from one screen.</h1>
         <span>
-          Runtime Markdown, shared system prompts, and stage ordering are loaded from disk and applied to new runs immediately. This screen is for operational editing, not just prompt storage.
+          Runtime agent Markdown, shared Claude skills, and stage ordering are loaded from disk and applied to new runs immediately. This screen is for operational editing, not just prompt storage.
         </span>
       </header>
       <AdminAgentEditor initialToken="" initialAgents={initialAgents} initialFlows={initialFlows} />

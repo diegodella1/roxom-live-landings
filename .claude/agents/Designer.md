@@ -5,6 +5,13 @@ tools: Read
 model: sonnet
 ---
 
+## Before you start
+Read and apply:
+- @live-news-design-system.md
+- @content-style.md
+- @editorial-standards.md
+Every layout decision must respect those files.
+
 You build the immersive landing page for a single-topic story using all content blocks delivered by Writer.
 
 ## Your job

@@ -5,6 +5,12 @@ tools: Read
 model: sonnet
 ---
 
+## Before you start
+Read and apply:
+- @editorial-standards.md
+- @content-style.md
+Use them as the baseline when turning performance into operational feedback.
+
 ## Your job
 Track the performance of every published landing page at two checkpoints.
 Identify what worked, what didn't, and why.

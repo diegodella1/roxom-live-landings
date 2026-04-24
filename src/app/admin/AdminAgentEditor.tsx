@@ -4,12 +4,25 @@ import { useMemo, useState } from "react";
 import styles from "./admin.module.css";
 
 type AgentId = EditableAgent["id"];
+type StageId =
+  | "telegramGateway"
+  | "slackGateway"
+  | "designStyle"
+  | "discover"
+  | "research"
+  | "writer"
+  | "designer"
+  | "critic"
+  | "publisher"
+  | "liveMonitor"
+  | "liveUpdater";
 type StatusFilter = "all" | EditableAgent["status"];
 
 type EditableAgent = {
   id:
-    | "editorialSystem"
-    | "stitchDesignSystem"
+    | "contentStyleSkill"
+    | "editorialStandardsSkill"
+    | "liveNewsDesignSystemSkill"
     | "telegramGateway"
     | "slackGateway"
     | "designStyle"
@@ -24,7 +37,7 @@ type EditableAgent = {
   label: string;
   role: string;
   filePath: string;
-  status: "active" | "role-only" | "system";
+  status: "active" | "role-only" | "skill";
   currentDescription: string;
   mdPath: string;
   markdown: string;
@@ -33,8 +46,8 @@ type EditableAgent = {
 type PipelineFlow = {
   id: "create" | "live";
   label: string;
-  stages: AgentId[];
-  availableStages: AgentId[];
+  stages: StageId[];
+  availableStages: StageId[];
 };
 
 type ApiState = "idle" | "loading" | "saving" | "error" | "saved";
@@ -56,13 +69,13 @@ const pipelineApiPath = () => {
 
 const statusLabel = (status: EditableAgent["status"]) => {
   if (status === "active") return "Runtime prompt";
-  if (status === "system") return "Shared system";
+  if (status === "skill") return "Claude skill";
   return "Deterministic role";
 };
 
 const statusDescription = (status: EditableAgent["status"]) => {
   if (status === "active") return "Injected into active LLM runs.";
-  if (status === "system") return "Base prompt reused across multiple agents.";
+  if (status === "skill") return "Edits the source Markdown under .claude/skills.";
   return "Visible here for operator clarity, but executed as code today.";
 };
 
@@ -115,7 +128,7 @@ export function AdminAgentEditor({
   }, [agents, query, statusFilter]);
 
   const groupedAgents = useMemo(() => {
-    const order: AgentGroup[] = ["active", "system", "role-only"];
+    const order: AgentGroup[] = ["active", "skill", "role-only"];
     return order.map(group => ({
       group,
       label: statusLabel(group),
@@ -227,7 +240,7 @@ export function AdminAgentEditor({
     setMessage("Pipeline flow saved.");
   };
 
-  const moveStage = (flowId: PipelineFlow["id"], stageId: AgentId, direction: -1 | 1) => {
+  const moveStage = (flowId: PipelineFlow["id"], stageId: StageId, direction: -1 | 1) => {
     const nextFlows = flows.map(flow => {
       if (flow.id !== flowId) return flow;
       const index = flow.stages.indexOf(stageId);
@@ -240,14 +253,14 @@ export function AdminAgentEditor({
     void saveFlows(nextFlows);
   };
 
-  const removeStage = (flowId: PipelineFlow["id"], stageId: AgentId) => {
+  const removeStage = (flowId: PipelineFlow["id"], stageId: StageId) => {
     const nextFlows = flows.map(flow =>
       flow.id === flowId ? { ...flow, stages: flow.stages.filter(stage => stage !== stageId) } : flow
     );
     void saveFlows(nextFlows);
   };
 
-  const addStage = (flowId: PipelineFlow["id"], stageId: AgentId) => {
+  const addStage = (flowId: PipelineFlow["id"], stageId: StageId) => {
     const nextFlows = flows.map(flow =>
       flow.id === flowId && !flow.stages.includes(stageId)
         ? { ...flow, stages: [...flow.stages, stageId] }
@@ -261,11 +274,11 @@ export function AdminAgentEditor({
   const draftLineCount = draft ? draft.split("\n").length : 0;
   const unsavedChanges = selectedAgent ? draft !== selectedAgent.markdown : false;
   const activeCount = agents.filter(agent => agent.status === "active").length;
-  const systemCount = agents.filter(agent => agent.status === "system").length;
+  const skillCount = agents.filter(agent => agent.status === "skill").length;
   const roleOnlyCount = agents.filter(agent => agent.status === "role-only").length;
   const totalStages = flows.reduce((sum, flow) => sum + flow.stages.length, 0);
   const selectedFlowUsage = selectedAgent
-    ? flows.filter(flow => flow.stages.includes(selectedAgent.id))
+    ? flows.filter(flow => flow.stages.includes(selectedAgent.id as StageId))
     : [];
   const markdownSections = draft
     .split("\n")
@@ -350,7 +363,7 @@ export function AdminAgentEditor({
             </label>
 
             <div className={styles.filterRow} aria-label="Agent filters">
-              {(["all", "active", "system", "role-only"] as const).map(filter => (
+              {(["all", "active", "skill", "role-only"] as const).map(filter => (
                 <button
                   className={statusFilter === filter ? styles.filterChipActive : styles.filterChip}
                   key={filter}
@@ -364,7 +377,7 @@ export function AdminAgentEditor({
 
             <div className={styles.agentCounts}>
               <span>{activeCount} runtime</span>
-              <span>{systemCount} system</span>
+              <span>{skillCount} skills</span>
               <span>{roleOnlyCount} deterministic</span>
             </div>
 
@@ -605,9 +618,9 @@ export function AdminAgentEditor({
                     placeholder={
                       selectedAgent.status === "active"
                         ? `Edit the Markdown instructions for ${selectedAgent.label}. These are injected into new LLM runs.`
-                        : selectedAgent.status === "system"
-                          ? `Edit the shared ${selectedAgent.label}. This is the true base prompt injected into multiple agents.`
-                          : `Edit the Markdown instructions for ${selectedAgent.label}. This role is visible here, but current execution is deterministic code rather than an LLM prompt.`
+                        : selectedAgent.status === "skill"
+                          ? `Edit ${selectedAgent.label}. This writes directly to the .claude/skills Markdown file used as the shared skill source.`
+                        : `Edit the Markdown instructions for ${selectedAgent.label}. This role is visible here, but current execution is deterministic code rather than an LLM prompt.`
                     }
                     spellCheck={false}
                   />
@@ -619,8 +632,8 @@ export function AdminAgentEditor({
                     <p>
                       {message || (selectedAgent.status === "active"
                         ? "This Markdown is appended to the selected active agent at runtime."
-                        : selectedAgent.status === "system"
-                          ? "This shared system prompt is reused across multiple agents."
+                        : selectedAgent.status === "skill"
+                          ? "This Markdown is the underlying .claude skill file and is edited in place."
                           : "This Markdown is editable for operational clarity, but the role currently executes as deterministic code.")}
                     </p>
                   </div>

@@ -2,10 +2,9 @@ import { runJsonAgent } from "../openai";
 import { enforceTopLineLanding } from "../landing-quality";
 import { slugify } from "../slug";
 import type { CriticResult, ImageCandidate, LandingContent, LandingDesignSpec, VisualAsset } from "../types";
-import { getStitchDesignSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
 import type { WriterOutput } from "./writer";
-import { getAgentOverride } from "../admin-agents";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 
 const sanitizeDesignSpec = (
   designSpec: LandingContent["designSpec"] | undefined,
@@ -108,11 +107,10 @@ export const runDesigner = async (topic: string, research: ResearchOutput, writi
   const slug = slugify(topic);
   const fallbackDesign = defaultStitchDesignSpec();
   const primaryImage = research.imageCandidates[0];
-  const adminOverride = await getAgentOverride("designer");
-  const stitchDesignSystem = await getStitchDesignSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("designer");
   const content = await runJsonAgent<LandingContent>({
     agent: "designer",
-    system: stitchDesignSystem,
+    system: systemPrompt,
     prompt: `
 Create structured live news landing JSON from a Stitch-style design plan. Do not generate React code.
 Use this exact JSON shape:
@@ -204,7 +202,6 @@ First-pass quality gate before returning:
 - DesignSpec must match the retro-futurist broadcast system: hot pink, neon purple, bright cyan, glass restraint, strong source clarity.
 - Data points must be useful as top-line cards and must cite attached sources.
 - The output should be near perfect before Critic sees it: no generic filler, no decorative visuals, no missing bibliography, no unsupported claims, no thin opening.
-${adminOverride}
 Images: ${JSON.stringify(research.imageCandidates)}
 Topic: ${topic}
 Research: ${JSON.stringify(research)}
@@ -248,11 +245,10 @@ Writing: ${JSON.stringify(writing)}
 };
 
 export const runDesignerRevision = async (content: LandingContent, critic: CriticResult, research: ResearchOutput) => {
-  const adminOverride = await getAgentOverride("designer");
-  const stitchDesignSystem = await getStitchDesignSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("designer");
   return normalizeLandingDesign(await runJsonAgent<LandingContent>({
     agent: "designer",
-    system: stitchDesignSystem,
+    system: systemPrompt,
     prompt: `
 Revise this live news landing JSON so it can pass Critic and still feel like a polished top-line news landing.
 Keep the same JSON shape and slug. Return only the complete revised JSON.
@@ -276,8 +272,6 @@ Rules:
 - Every Critic issue must be addressed directly. If a section id is named in feedback, fix that exact section. If a count is named, meet or exceed the count.
 - Set "status" to "critic_review".
 - After fixing the named issues, run one final full-page pass for top-line clarity, section completeness, source support, visual relevance, and first-viewport quality so a second repair loop is unlikely.
-${adminOverride}
-
 Critic feedback:
 ${JSON.stringify(critic)}
 

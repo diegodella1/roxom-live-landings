@@ -97,7 +97,12 @@ Set `ADMIN_TOKEN` in production, then open:
 https://diegodella.ar/landings/admin?token=YOUR_ADMIN_TOKEN
 ```
 
-The editor saves runtime overrides for Research, Writer, Designer, and Critic in `/data/admin-agent-overrides.json` by default. Set `AGENT_OVERRIDES_DIR` to use a different persistent directory. Overrides apply to new agent runs without a rebuild. They do not rewrite the source files in Git.
+The editor now reads the active runtime agent prompts from `.claude/agents` and the shared editorial/design skills from `.claude/skills`. Edits apply to new agent runs immediately.
+
+Important:
+- In Git, the source of truth is `.claude/agents` and `.claude/skills`.
+- In production containers, file edits made through `/admin` affect the running container immediately, but you should still commit and push the same changes to Git if you want them preserved across rebuilds or redeploys.
+
 If the full root app is routed to this service, `/admin` also works. With the current `/landings` path mount, use `/landings/admin`.
 
 ## Acceptance Smoke Test

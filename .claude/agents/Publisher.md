@@ -5,6 +5,13 @@ tools: Read
 model: sonnet
 ---
 
+## Before you start
+Read and apply:
+- @editorial-standards.md
+- @content-style.md
+- @live-news-design-system.md
+The publish decision must preserve those standards.
+
 ## Your job
 Take the final HTML layout from Designer and submit it to the live news GitHub repository as a Pull Request.
 Run a full pre-publish checklist before creating the PR.

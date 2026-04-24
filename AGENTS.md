@@ -48,68 +48,107 @@ I am the **main orchestrator** for Diego's live news workspace. My job is to und
 
 ## Available Agents
 
-### `Explore` — Codebase Explorer
-**When to use it:** Before any code modification. Use it whenever the project structure, existing files, existing components, or current behavior needs to be understood.
-- Find files by pattern
-- Read and analyze existing code
-- Answer architecture questions
-- Audit consistency between code and design
+These are the agents currently defined under `.claude/agents/` and therefore the ones that should be treated as the active roster.
 
-### `Plan` — Solution Architect
-**When to use it:** For non-trivial tasks that need a clear strategy before execution, especially when there are multiple possible approaches.
-- Design the implementation strategy
-- Identify critical files to modify
-- Evaluate technical trade-offs
-- Plan refactors or new features
+### `Research` — Topic Intelligence Package
+**When to use it:** First pass on a new story or topic.
+- Builds the source-backed research package
+- Collects facts, context, quotes, data, reactions, and visuals
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
 
-### `general-purpose` — Implementation Agent
-**When to use it:** To execute code changes: create, modify, or delete files. Each implementation agent must have a narrow, clear scope.
-- Implement UI components
-- Modify CSS styles
-- Integrate APIs or services
-- Fix specific bugs
-- Work on one project at a time
+### `Approver` — Research Gate
+**When to use it:** After `Research`, before any writing starts.
+- Approves or rejects the full research package
+- Enforces completeness, credibility, and source quality
+- Must apply `.claude/skills/editorial-standards.md`
 
-### `general-purpose` — Figma/Design Agent
-**When to use it:** For Figma MCP work. This agent has access to Figma tools and must follow the required design-analysis workflow.
+### `Writer` — Content Blocks
+**When to use it:** After research is approved.
+- Writes the headline, subheadline, article, context, quotes, data, and reactions
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/editorial-standards.md`
 
-**Required workflow for this agent:**
-1. `get_screenshot(nodeId, fileKey)` — inspect the design visually
-2. `get_design_context(nodeId, fileKey)` — extract structured specs
-3. `get_variable_defs(nodeId, fileKey)` — extract tokens
-4. `get_code_connect_map(nodeId, fileKey)` — verify existing mappings
-5. Validate everything against the screenshot
+### `Editor` — Editorial QA
+**When to use it:** After `Writer`, before any layout work.
+- Audits sourcing, tone, chronology, and wording
+- Sends concrete revision notes or approves the package
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
 
-### `LiveMonitor` — Live Monitoring (Every 30 Minutes)
-**When to use it:** When an already-published story is still evolving and needs near-real-time context monitoring.
-- Runs monitoring cycles every 30 minutes
-- Detects material deltas: facts, quotes, data, visuals, corrections
-- Returns a verified update package with sources and UTC timestamp
+### `Designer` — Scroll Landing Designer
+**When to use it:** For the standard editorial landing page format.
+- Produces and evaluates multiple visual layout directions
+- Returns the best HTML/CSS version
+- Must apply `.claude/skills/live-news-design-system.md`
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/editorial-standards.md`
 
-### `LiveUpdater` — Live Landing Updater
-**When to use it:** After each LiveMonitor cycle that finds material changes.
-- Applies only verified deltas, without rewriting everything
-- Preserves editorial and visual consistency
-- Respects TV format limits: 16:9, no scroll, maximum 3 slides
+### `TVDesigner` — 16:9 Broadcast Designer
+**When to use it:** When output is TV-first instead of scroll-first.
+- Designs a 16:9, no-scroll, max-3-slide experience
+- Optimizes for broadcast readability and visual hierarchy
+- Must apply `.claude/skills/live-news-design-system.md`
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/editorial-standards.md`
 
-### `TVDesigner` — 16:9 Broadcast Design
-**When to use it:** When the target format is TV screen output instead of a traditional scrolling landing page.
-- Designs a one-page 16:9 experience
-- No vertical scroll (`overflow: hidden`)
-- Maximum 3 slides
-- Every slide must include visuals plus text, never text alone
+### `Publisher` — PR And Delivery
+**When to use it:** After design is ready to publish.
+- Runs the pre-publish checklist
+- Opens and updates the PR
+- Reports PR URL and final URL
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/live-news-design-system.md`
 
-### `TelegramGateway` — Remote Control And Alerts
-**When to use it:** When the pipeline needs remote commands and status notifications through Telegram.
-- Processes inbound commands (`/start_live`, `/status`, `/force_update`, etc.)
-- Sends operational and blocker alerts
-- Sends the PR URL when opened and the final URL when complete
+### `Critic` — Pre-Merge Review
+**When to use it:** After `Publisher` opens a PR.
+- Audits the preview for editorial, visual, and technical issues
+- Blocks or approves the PR before merge
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/live-news-design-system.md`
 
-### `PiOps` — 24/7 Raspberry Pi Operations
-**When to use it:** For stable Raspberry Pi deployment of the pipeline.
-- Defines execution as a persistent service (`systemd`)
-- Monitors health, 30-minute cycles, and restarts
-- Escalates failures or missing credentials to Telegram
+### `Monitor` — Post-Publish Performance Review
+**When to use it:** After publication at 24h and 7d checkpoints.
+- Analyzes page performance against baseline
+- Sends feedback to improve future research, writing, editing, and design
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
+
+### `LiveMonitor` — 30-Minute Live Delta Monitor
+**When to use it:** For active stories that are still changing.
+- Detects verified material deltas every 30 minutes
+- Produces compact update packages with timestamps and sources
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
+
+### `LiveUpdater` — Active Landing Delta Applier
+**When to use it:** Immediately after `LiveMonitor` finds a material change.
+- Updates only affected slides/blocks
+- Preserves continuity, credits, and TV density constraints
+- Must apply `.claude/skills/editorial-standards.md`
+- Must apply `.claude/skills/content-style.md`
+- Must apply `.claude/skills/live-news-design-system.md`
+
+### `TelegramGateway` — Command And Alert Layer
+**When to use it:** For command intake and operational notifications.
+- Handles Telegram commands and lifecycle messages
+- Reports PR URLs, final URLs, and blockers
+
+### `PiOps` — Raspberry Pi Runtime Operator
+**When to use it:** For long-running service stability.
+- Owns service uptime, restart behavior, scheduler health, and operational alerts
+
+## Shared Skills In `.claude/skills`
+
+These are the current reusable skills available to the agent roster:
+
+- `editorial-standards.md`: topic selection, source quality, rejection rules, live update rules, TV editorial constraints
+- `content-style.md`: headline rules, subheadline rules, body style, quote format, image credits, TV copy limits
+- `live-news-design-system.md`: visual language, colors, typography, spacing, glassmorphism, broadcast UI rules
+
+Any agent producing editorial decisions, public-facing copy, or design output should explicitly load the relevant skill files before acting.
 
 ---
 

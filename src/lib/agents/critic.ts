@@ -1,19 +1,17 @@
 import { runJsonAgent } from "../openai";
 import type { CriticResult, LandingContent } from "../types";
 import { validateLandingContent } from "../validation";
-import { getEditorialSystem } from "./prompts";
-import { getAgentOverride } from "../admin-agents";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 
 export const runCritic = async (content: LandingContent, landingId?: number) => {
   const local = validateLandingContent(content);
   if (!local.approved) return local;
-  const adminOverride = await getAgentOverride("critic");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("critic");
 
   return runJsonAgent<CriticResult>({
     agent: "critic",
     landingId,
-    system: editorialSystem,
+    system: systemPrompt,
     prompt: `
 Act as Critic for an experimental live news landing. Approve only if the landing is factual, sourced, visually strong, clearly sectioned, and safe to publish.
 Your job is to help the pipeline reach a publishable landing outcome, not to reject work harshly.
@@ -35,7 +33,6 @@ Good examples:
 Do not return vague issues like "improve quality", "needs work", or "make it better".
 If approval is not possible, still steer toward the safest publishable version of the landing instead of asking for perfection.
 If the landing has only minor style preferences but is factual, sourced, complete, and understandable, approve it. Do not force repair loops for subjective taste.
-${adminOverride}
 Return JSON:
 {
   "approved": boolean,

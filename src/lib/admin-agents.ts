@@ -1,17 +1,19 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { env } from "./config";
 import type { AgentName } from "./types";
-import { isSystemPromptId, listSystemPrompts, saveSystemPrompt, systemPromptPath, type SystemPromptId } from "./system-prompts";
+import { claudeAgentPathFor, claudeSkillPathFor } from "./claude-prompts";
 
 export type EditableAgentId = AgentName;
-export type EditableEntryId = EditableAgentId | SystemPromptId;
+export type EditableSkillId = "contentStyleSkill" | "editorialStandardsSkill" | "liveNewsDesignSystemSkill";
+export type EditableEntryId = EditableAgentId | EditableSkillId;
+export type EditableEntryStatus = "active" | "role-only" | "skill";
 
 export type EditableAgent = {
   id: EditableEntryId;
   label: string;
   role: string;
   filePath: string;
-  status: "active" | "role-only" | "system";
+  status: EditableEntryStatus;
   currentDescription: string;
   mdPath: string;
   markdown: string;
@@ -21,6 +23,10 @@ type AgentDefinition = Omit<EditableAgent, "mdPath" | "markdown">;
 type AgentRecordDefinition = Omit<EditableAgent, "mdPath" | "markdown" | "id" | "status"> & {
   id: EditableAgentId;
   status: "active" | "role-only";
+};
+type SkillRecordDefinition = Omit<EditableAgent, "mdPath" | "markdown" | "id" | "status"> & {
+  id: EditableSkillId;
+  status: "skill";
 };
 
 const agentDefinitions: AgentRecordDefinition[] = [
@@ -125,10 +131,41 @@ const agentDefinitions: AgentRecordDefinition[] = [
   }
 ];
 
+const skillDefinitions: SkillRecordDefinition[] = [
+  {
+    id: "contentStyleSkill",
+    label: "Content Style Skill",
+    role: "Shared editorial copy rules for headlines, summaries, body copy, quote formatting, and TV-mode copy density.",
+    filePath: ".claude/skills/content-style.md",
+    status: "skill",
+    currentDescription:
+      "Defines how the live news system writes reader-facing copy: headline constraints, subheadline behavior, summary style, body rules, quote formatting, image credit formatting, and TV-first copy limits."
+  },
+  {
+    id: "editorialStandardsSkill",
+    label: "Editorial Standards Skill",
+    role: "Shared publication standards for topic selection, sourcing thresholds, rejection rules, and live-update editorial policy.",
+    filePath: ".claude/skills/editorial-standards.md",
+    status: "skill",
+    currentDescription:
+      "Defines what the system should publish or reject, acceptable source tiers, breaking-news criteria, live-update protocol, and TV-mode editorial constraints."
+  },
+  {
+    id: "liveNewsDesignSystemSkill",
+    label: "Live News Design System Skill",
+    role: "Shared visual system for broadcast-style landing pages, glassmorphism, color, typography, spacing, and component behavior.",
+    filePath: ".claude/skills/live-news-design-system.md",
+    status: "skill",
+    currentDescription:
+      "Defines the reusable visual language used by design-oriented agents, including colors, typography, spacing, glass surfaces, badges, tickers, and layout rules."
+  }
+];
+
 const storeDirectory = () => process.env.AGENT_OVERRIDES_DIR ?? (env.pipelineEnv === "prod" ? "/data" : "/tmp");
 const storePath = () => `${storeDirectory().replace(/\/$/, "")}/admin-agent-overrides.json`;
 const markdownDirectory = () => process.env.AGENT_MD_DIR ?? `${storeDirectory().replace(/\/$/, "")}/agents`;
-const markdownPath = (agentId: EditableAgentId) => `${markdownDirectory().replace(/\/$/, "")}/${agentId}.md`;
+const markdownPath = (agentId: EditableAgentId) => claudeAgentPathFor(agentId) ?? `${markdownDirectory().replace(/\/$/, "")}/${agentId}.md`;
+const skillMarkdownPath = (skillId: EditableSkillId) => claudeSkillPathFor(skillId);
 
 const defaultAgentMarkdown = (agent: AgentRecordDefinition) => `# ${agent.label}
 
@@ -164,20 +201,16 @@ export const listEditableEntries = async (): Promise<EditableAgent[]> => {
       markdown
     };
   }));
-  const systemPrompts = await listSystemPrompts();
-  return [
-    ...systemPrompts.map(prompt => ({
-      id: prompt.id,
-      label: prompt.label,
-      role: "Shared system prompt",
-      filePath: "src/lib/agents/prompts.ts",
-      status: "system" as const,
-      currentDescription: prompt.description,
-      mdPath: systemPromptPath(prompt.id),
-      markdown: prompt.markdown
-    })),
-    ...agents
-  ];
+  const skills = await Promise.all(skillDefinitions.map(async skill => {
+    const mdPath = skillMarkdownPath(skill.id);
+    const markdown = await readFile(mdPath, "utf8");
+    return {
+      ...skill,
+      mdPath,
+      markdown
+    };
+  }));
+  return [...skills, ...agents];
 };
 
 export const listEditableAgents = listEditableEntries;
@@ -216,8 +249,11 @@ ${legacyOverride.trim()}
 };
 
 export const saveEditableEntryMarkdown = async (agentId: EditableEntryId, markdown: string) => {
-  if (isSystemPromptId(agentId)) {
-    return saveSystemPrompt(agentId, markdown);
+  const skill = skillDefinitions.find(definition => definition.id === agentId);
+  if (skill) {
+    const cleaned = markdown.trim() || (await readFile(skillMarkdownPath(skill.id), "utf8")).trim();
+    await writeFile(skillMarkdownPath(skill.id), `${cleaned}\n`, "utf8");
+    return `${cleaned}\n`;
   }
   const agent = agentDefinitions.find(definition => definition.id === agentId);
   if (!agent) {
@@ -225,13 +261,14 @@ export const saveEditableEntryMarkdown = async (agentId: EditableEntryId, markdo
   }
   const cleaned = markdown.trim() || defaultAgentMarkdown(agent).trim();
   await mkdir(markdownDirectory(), { recursive: true });
-  await writeFile(markdownPath(agentId), `${cleaned}\n`, "utf8");
+  await writeFile(markdownPath(agent.id), `${cleaned}\n`, "utf8");
   return `${cleaned}\n`;
 };
 
 export const saveAgentMarkdown = saveEditableEntryMarkdown;
 
 export const isEditableEntryId = (value: unknown): value is EditableEntryId =>
-  (typeof value === "string" && agentDefinitions.some(agent => agent.id === value)) || isSystemPromptId(value);
+  typeof value === "string" &&
+  (agentDefinitions.some(agent => agent.id === value) || skillDefinitions.some(skill => skill.id === value));
 
 export const isEditableAgentId = isEditableEntryId;

@@ -1,6 +1,5 @@
 import { runJsonAgent } from "../openai";
-import { getAgentOverride } from "../admin-agents";
-import { getEditorialSystem } from "./prompts";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 
 export type DiscoveryCandidate = {
   topic: string;
@@ -66,7 +65,7 @@ const normalizeDiscovery = (output: DiscoveryOutput): DiscoveryOutput | null => 
   return null;
 };
 
-const discoveryPrompt = (input: { hint?: string; adminOverride: string; retry?: boolean }) => {
+const discoveryPrompt = (input: { hint?: string; retry?: boolean }) => {
   const hint = input.hint?.trim() ?? "";
   const effectiveHint = genericHints.has(hint.toLowerCase()) ? "No specific hint. Scan all major current news beats." : hint;
   return `
@@ -123,18 +122,16 @@ Private red-team before returning:
 - Reject topics that are merely evergreen, generic, or missing a clear "what changed now".
 - Prefer a topic that can become a complete top-line landing with clear sections, strong visuals, and enough source-backed context.
 - Confirm selectedTopic is concise, concrete, and names the actual event, actor, market move, result, decision, filing, quote, or official action.
-${input.adminOverride}
 `;
 };
 
 export const discoverLiveTopic = async (hint?: string) => {
-  const adminOverride = await getAgentOverride("discover");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("discover");
   const output = await runJsonAgent<DiscoveryOutput>({
     agent: "discover",
-    system: editorialSystem,
+    system: systemPrompt,
     useWebSearch: true,
-    prompt: discoveryPrompt({ hint, adminOverride }),
+    prompt: discoveryPrompt({ hint }),
     fallback: () => ({
       selectedTopic: "No qualifying last-8-hours topic found",
       selectedRationale: "Discovery fallback could not verify a real current topic because web discovery was unavailable.",
@@ -147,9 +144,9 @@ export const discoverLiveTopic = async (hint?: string) => {
 
   const retryOutput = await runJsonAgent<DiscoveryOutput>({
     agent: "discover",
-    system: editorialSystem,
+    system: systemPrompt,
     useWebSearch: true,
-    prompt: discoveryPrompt({ adminOverride, retry: true }),
+    prompt: discoveryPrompt({ retry: true }),
     fallback: () => ({
       selectedTopic: "No qualifying last-8-hours topic found",
       selectedRationale: "Discovery retry fallback could not verify a real current topic because web discovery was unavailable.",

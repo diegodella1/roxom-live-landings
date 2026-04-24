@@ -1,9 +1,8 @@
 import { runJsonAgent } from "../openai";
 import type { ImageCandidate, Source, SourceBoundFact } from "../types";
 import { discoverSourceImages, discoverWikimediaImages, isLikelyRenderableImageUrl } from "../source-images";
-import { getEditorialSystem } from "./prompts";
 import { fallbackSources } from "./fallbacks";
-import { getAgentOverride } from "../admin-agents";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 
 export type ResearchOutput = {
   topic: string;
@@ -45,11 +44,10 @@ const normalizeResearch = async (output: ResearchOutput): Promise<ResearchOutput
 };
 
 export const runResearch = async (topic: string) => {
-  const adminOverride = await getAgentOverride("research");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("research");
   return normalizeResearch(await runJsonAgent<ResearchOutput>({
     agent: "research",
-    system: editorialSystem,
+    system: systemPrompt,
     useWebSearch: true,
     prompt: `
 Research this live news landing topic: "${topic}".
@@ -90,7 +88,6 @@ Private red-team before returning:
 - Are there enough actors/entities, numbers, quotes/reactions, and next-step facts for a complete top-line landing?
 - Are image candidates relevant enough that Designer will not need decorative filler?
 - Remove weak facts, unsupported claims, duplicate sources, and image candidates whose relevance is not obvious.
-${adminOverride}
 `,
     fallback: () => {
       const sources = fallbackSources(topic);

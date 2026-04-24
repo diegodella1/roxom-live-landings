@@ -4,6 +4,12 @@ description: Takes the approved research package on a single topic and writes al
 model: sonnet
 ---
 
+## Before you start
+Read and apply:
+- @editorial-standards.md
+- @content-style.md
+Every output must follow those rules.
+
 You write all the content blocks for a single-topic immersive landing page based on the approved research package.
 
 ## Your job

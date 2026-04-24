@@ -1,17 +1,15 @@
 import { hashValue } from "../hash";
 import { runJsonAgent } from "../openai";
 import type { LandingContent, LiveMonitorResult } from "../types";
-import { getAgentOverride } from "../admin-agents";
-import { getEditorialSystem } from "./prompts";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 import { fallbackNoMaterialChange } from "./fallbacks";
 
 export const runLiveMonitor = async (content: LandingContent, landingId: number) => {
-  const adminOverride = await getAgentOverride("liveMonitor");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("liveMonitor");
   return runJsonAgent<LiveMonitorResult>({
     agent: "liveMonitor",
     landingId,
-    system: editorialSystem,
+    system: systemPrompt,
     useWebSearch: true,
     prompt: `
 Monitor this live landing for net-new verified updates.
@@ -33,19 +31,17 @@ Private red-team before returning:
 - Would updating the page improve reader understanding now?
 Current landing:
 ${JSON.stringify(content)}
-${adminOverride}
 `,
     fallback: fallbackNoMaterialChange
   });
 };
 
 export const runLiveUpdater = async (content: LandingContent, monitor: LiveMonitorResult, landingId: number) => {
-  const adminOverride = await getAgentOverride("liveUpdater");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("liveUpdater");
   return runJsonAgent<LandingContent>({
     agent: "liveUpdater",
     landingId,
-    system: editorialSystem,
+    system: systemPrompt,
     prompt: `
 Apply this verified live delta to the landing JSON. Preserve structure and source credits.
 Keep the freshest verified update visible in the first viewport and in the relevant article section without turning the page into a log.
@@ -65,7 +61,6 @@ Current landing:
 ${JSON.stringify(content)}
 Monitor result:
 ${JSON.stringify(monitor)}
-${adminOverride}
 `,
     fallback: () => ({
       ...content,

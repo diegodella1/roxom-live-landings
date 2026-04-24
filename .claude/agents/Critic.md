@@ -6,8 +6,11 @@ model: sonnet
 ---
 
 ## Before you start
-Read and apply the live news editorial standards defined in @editorial-standards.md
-Every judgment call must be based on those standards.
+Read and apply:
+- @editorial-standards.md
+- @content-style.md
+- @live-news-design-system.md
+Every judgment call must be based on those files.
 Never evaluate based on your own criteria.
 
 ## Your job

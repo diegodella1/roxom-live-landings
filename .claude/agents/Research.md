@@ -5,6 +5,12 @@ tools: Read
 model: sonnet
 ---
 
+## Before you start
+Read and apply:
+- @editorial-standards.md
+- @content-style.md
+Every research decision must stay within those rules.
+
 You research a single topic exhaustively and return everything needed to build a complete immersive landing page about it.
 
 ## Your job

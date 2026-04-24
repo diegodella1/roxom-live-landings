@@ -1,8 +1,7 @@
 import { runJsonAgent } from "../openai";
 import type { StorySection } from "../types";
-import { getEditorialSystem } from "./prompts";
 import type { ResearchOutput } from "./research";
-import { getAgentOverride } from "../admin-agents";
+import { loadClaudeAgentPrompt } from "../claude-prompts";
 
 export type WriterOutput = {
   headline: string;
@@ -14,11 +13,10 @@ export type WriterOutput = {
 };
 
 export const runWriter = async (research: ResearchOutput) => {
-  const adminOverride = await getAgentOverride("writer");
-  const editorialSystem = await getEditorialSystem();
+  const systemPrompt = await loadClaudeAgentPrompt("writer");
   return runJsonAgent<WriterOutput>({
     agent: "writer",
-    system: editorialSystem,
+    system: systemPrompt,
     prompt: `
 Write structured landing content from this research package.
 Every factual sentence must be supported by the source-bound facts in Research.
@@ -62,7 +60,6 @@ Before returning JSON, run this private preflight and fix failures yourself:
 - The writing gives Designer clear section intent, visualHint choices, and data/quote material so Critic should not need multiple repair loops.
 - No section body contains meta copy about sources, approval, fallback behavior, or the page generation process.
 - If research is too thin for 6-8 strong sections, use fewer only when unavoidable, but make each one specific, sourced, and useful.
-${adminOverride}
 Return JSON:
 {
   "headline": string,
