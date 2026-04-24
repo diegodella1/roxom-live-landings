@@ -13,7 +13,11 @@ const normalizeVisualKey = (visual: Pick<VisualAsset, "url" | "title" | "credit"
     .replace(/^https?:\/\/[^/]+\/api\/source-image\?url=/, "");
   const safeTitle = String(visual.title ?? "").trim().toLowerCase();
   const safeCredit = String(visual.credit ?? "").trim().toLowerCase();
-  return `${decodeURIComponent(normalizedUrl)}|${safeTitle}|${safeCredit}`;
+  try {
+    return `${decodeURIComponent(normalizedUrl)}|${safeTitle}|${safeCredit}`;
+  } catch {
+    return `${normalizedUrl}|${safeTitle}|${safeCredit}`;
+  }
 };
 
 const sourceLabel = (content: LandingContent, sourceUrl: string) => {
@@ -38,7 +42,6 @@ const visualMatchesSection = (visual: VisualAsset | undefined, section: StorySec
   const sectionText = new Set(termsFor(`${section.title} ${section.body} ${content.topic}`));
   return visualText.some(term => sectionText.has(term));
 };
-
 
 const extractPointNumbers = (value: string) => {
   const matches = Array.from(value.matchAll(/(\d[\d.,]*)/g));
@@ -170,9 +173,7 @@ export function LandingRenderer({ content }: { content: LandingContent }) {
     const shouldShowMedia = Boolean(visual);
     return { section, index, visual, isLeadSection, shouldShowMedia };
   });
-  const usedArticleImageUrls = new Set(
-    [] as string[]
-  );
+  const usedArticleImageUrls = new Set<string>();
   sectionImagePlan
     .filter(item => item.shouldShowMedia && item.visual?.url)
     .forEach(item => usedArticleImageUrls.add(item.visual!.url));
